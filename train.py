@@ -29,7 +29,7 @@ def main(hp, num_epochs, resume, name):
     if hp.RESNET_PLUS_PLUS:
         model = ResUnetPlusPlus(3).cuda()
     else:
-        model = ResUnet(3, 64).cuda()
+        model = ResUnet(3).cuda()
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
