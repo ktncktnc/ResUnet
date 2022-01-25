@@ -38,7 +38,7 @@ def create_multiclass_mask(mask, is_contact_points=False):
     num_channels = 2 + (is_contact_points == 1)
 
     labels, ships_num = label(mask)
-    final_mask = np.zeros((labels.shape[0], labels.shape[1], num_channels))
+    final_mask = np.zeros((num_channels, labels.shape[0], labels.shape[1]))
 
     if ships_num > 0:
         for i in range(1, ships_num + 1):
@@ -55,10 +55,10 @@ def create_multiclass_mask(mask, is_contact_points=False):
 
             eroded = binary_erosion(ship_mask, iterations=contour_size)
             countour_mask = ship_mask ^ eroded
-            final_mask[..., 0] += ship_mask
-            final_mask[..., 1] += countour_mask
+            final_mask[0, ...] += ship_mask
+            final_mask[1, ...] += countour_mask
 
         if is_contact_points:
-            final_mask[..., 2] = create_separation(labels)
+            final_mask[2, ...] = create_separation(labels)
 
     return final_mask

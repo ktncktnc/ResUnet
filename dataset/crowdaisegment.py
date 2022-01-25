@@ -97,8 +97,6 @@ class MappingChallengeDataset(Dataset):
 
         if self.mode == 0:
             mask = np.expand_dims(mask, 0)
-        else:
-            mask = np.swapaxes(mask, 0, -1)
 
         sample = {
             "image": img,
