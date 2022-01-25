@@ -181,6 +181,8 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
 
             step += 1
 
+        dataset_train.rand()
+
 
 def validation(valid_loader, model, criterion, logger, step):
 
@@ -237,11 +239,11 @@ if __name__ == "__main__":
         help="path to latest checkpoint (default: none)",
     )
     parser.add_argument("--name", default="default", type=str, help="Experiment name")
-
+    parser.add_argument("--mode", default=0, type = int, help = "Training mode")
     args = parser.parse_args()
 
     hp = HParam(args.config)
     with open(args.config, "r") as f:
         hp_str = "".join(f.readlines())
 
-    main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name)
+    main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name, training_mode=args.mode)
