@@ -1,10 +1,11 @@
 import random
 import os
+from skimage import io
 import skimage
 import numpy as np
 from typing import Optional, Callable
 from torch.utils.data import Dataset
-from utils import *
+from dataset.utils import *
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils

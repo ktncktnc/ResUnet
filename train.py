@@ -86,6 +86,11 @@ def main(hp, num_epochs, resume, name):
     dataset_train = MappingChallengeDataset(hp.dset_dir, "train", 1, hp.train_size, train_transform)
     dataset_valid = MappingChallengeDataset(hp.dset_dir, "val", 1, hp.test_size, test_transform)
 
+    dataset_train.rand()
+    dataset_valid.rand()
+    print(len(dataset_train))
+    print(len(dataset_valid))
+    print(hp.batch_size)
     # creating loaders
     train_dataloader = DataLoader(
         dataset_train, batch_size=hp.batch_size, num_workers=2, shuffle=True
@@ -114,10 +119,9 @@ def main(hp, num_epochs, resume, name):
 
         loader = tqdm(train_dataloader, desc="training")
         for idx, data in enumerate(loader):
-
             # get the inputs and wrap in Variable
             inputs = data["image"].float().cuda()
-            labels = data["mask"].cuda()
+            labels = data["mask"].float().cuda()
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -138,7 +142,7 @@ def main(hp, num_epochs, resume, name):
             train_loss.update(loss.data.item(), outputs.size(0))
 
             # tensorboard logging
-            if step % hp.logging_step == 0:
+            if (step + 1) % hp.logging_step == 0:
                 writer.log_training(train_loss.avg, train_acc.avg, step)
                 loader.set_description(
                     "Training Loss: {:.4f} Acc: {:.4f}".format(
@@ -147,7 +151,7 @@ def main(hp, num_epochs, resume, name):
                 )
 
             # Validation
-            if step % hp.validation_interval == 0:
+            if (step + 1) % hp.validation_interval == 0:
                 valid_metrics = validation(
                     val_dataloader, model, criterion, writer, step
                 )
