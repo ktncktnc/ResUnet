@@ -1,14 +1,16 @@
 import random
 import os
-from skimage import io
 import skimage
 import numpy as np
+import torch
+
+from skimage import io
 from typing import Optional, Callable
 from torch.utils.data import Dataset
 from dataset.utils import *
 from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
-from pycocotools import mask as maskUtils
+from pycocotools import mask as mask_utils
+
 
 class MappingChallengeDataset(Dataset):
     """
@@ -32,11 +34,19 @@ class MappingChallengeDataset(Dataset):
             transform: Optional[Callable]
     ) -> None:
 
+        self.class_ids = None
+        self.class_from_source_map = None
+        self.num_classes = None
+        self.sources = None
+        self.class_names = None
+        self.num_images = None
+
         self.mode = mode
         self.total_size = total_size
         self._image_ids = []
         self.rnd_image_info_idx = []
         self.image_info = []
+
         # Background is always the first class
         self.class_info = [{"source": "", "id": 0, "name": "BG"}]
         self.source_class_ids = {}
@@ -51,11 +61,11 @@ class MappingChallengeDataset(Dataset):
 
         self.coco = COCO(self.annotation_path)
 
-        classIds = self.coco.getCatIds()
+        class_ids = self.coco.getCatIds()
         image_ids = list(self.coco.imgs.keys())
 
         # register classes
-        for _class_id in classIds:
+        for _class_id in class_ids:
             self.add_class("crowdai-mapping-challenge", _class_id, self.coco.loadCats(_class_id)[0]["name"])
 
         # Register Images
@@ -67,7 +77,7 @@ class MappingChallengeDataset(Dataset):
                 path=os.path.join(self.image_dir, self.coco.imgs[_img_id]['file_name']),
                 width=self.coco.imgs[_img_id]["width"],
                 height=self.coco.imgs[_img_id]["height"],
-                annotations=self.coco.loadAnns(self.coco.getAnnIds(imgIds=[_img_id], catIds=classIds, iscrowd=None))
+                annotations=self.coco.loadAnns(self.coco.getAnnIds(imgIds=[_img_id], catIds=class_ids, iscrowd=None))
             )
 
         self.prepare()
@@ -90,25 +100,36 @@ class MappingChallengeDataset(Dataset):
         else:
             mask = self.stack_mask(mask)
 
-        if self.mode == 1:
+        if self.mode == 0:
+            mask = np.expand_dims(mask, 0)
+        elif self.mode == 1:
             mask = create_multiclass_mask(mask, False)
         elif self.mode == 2:
             mask = create_multiclass_mask(mask, True)
 
-        if self.mode == 0:
-            mask = np.expand_dims(mask, 0)
-
         sample = {
             "image": img,
-            "mask": mask
+            "mask": mask[0, ...],
         }
+
+        if self.mode >= 1:
+            sample['border_mask'] = mask[1, ...]
+        if self.mode >= 2:
+            sample['touching_mask'] = mask[2, ...]
 
         if self.transform is not None:
             sample = self.transform(**sample)
 
+        mask = torch.zeros_like(mask)
+        mask[0, ...] = sample['mask']
+        if self.mode >= 1:
+            mask[1, ...] = sample['border_mask']
+        if self.mode >= 2:
+            mask[2, ...] = sample['touching_mask']
+
         return {
             "image": sample["image"].float(),
-            "mask": sample["mask"].float()
+            "mask": mask.float(),
         }
 
     def load_image(self, image_id):
@@ -151,8 +172,7 @@ class MappingChallengeDataset(Dataset):
                 "crowdai-mapping-challenge.{}".format(annotation['category_id']))
 
             if class_id:
-                m = self.annToMask(annotation, image_info["height"],
-                                   image_info["width"])
+                m = self.annToMask(annotation, image_info["height"], image_info["width"])
                 # Some objects are so small that they're less than 1 pixel area
                 # and end up rounded out. Skip those objects.
                 if m.max() < 1:
@@ -200,11 +220,13 @@ class MappingChallengeDataset(Dataset):
         image_info.update(kwargs)
         self.image_info.append(image_info)
 
-    def stack_mask(self, masks):
+    @staticmethod
+    def stack_mask(masks):
         mask = np.logical_or.reduce(masks, axis=2)
         return mask * 1
 
-    def image_reference(self, image_id):
+    @staticmethod
+    def image_reference(image_id):
         """Return a link to the image in its source Website or details about
         the image that help looking it up or debugging it.
         Override for your dataset, but pass to this function
@@ -243,8 +265,8 @@ class MappingChallengeDataset(Dataset):
         self.num_images = len(self.image_info)
         self._image_ids = np.arange(self.num_images)
 
-        self.class_from_source_map = {"{}.{}".format(info['source'], info['id']): id
-                                      for info, id in zip(self.class_info, self.class_ids)}
+        self.class_from_source_map = {"{}.{}".format(info['source'], info['id']): _id
+                                      for info, _id in zip(self.class_info, self.class_ids)}
 
         # Map sources to class_ids they support
         self.sources = list(set([i['source'] for i in self.class_info]))
@@ -258,7 +280,8 @@ class MappingChallengeDataset(Dataset):
                 if i == 0 or source == info['source']:
                     self.source_class_ids[source].append(i)
 
-    def annToRLE(self, ann, height, width):
+    @staticmethod
+    def annToRLE(ann, height, width):
         """
         Convert annotation which can be polygons, uncompressed RLE to RLE.
         :return: binary mask (numpy 2D array)
@@ -267,11 +290,11 @@ class MappingChallengeDataset(Dataset):
         if isinstance(segm, list):
             # polygon -- a single object might consist of multiple parts
             # we merge all parts into one mask rle code
-            rles = maskUtils.frPyObjects(segm, height, width)
-            rle = maskUtils.merge(rles)
+            rles = mask_utils.frPyObjects(segm, height, width)
+            rle = mask_utils.merge(rles)
         elif isinstance(segm['counts'], list):
             # uncompressed RLE
-            rle = maskUtils.frPyObjects(segm, height, width)
+            rle = mask_utils.frPyObjects(segm, height, width)
         else:
             # rle
             rle = ann['segmentation']
@@ -283,5 +306,5 @@ class MappingChallengeDataset(Dataset):
         :return: binary mask (numpy 2D array)
         """
         rle = self.annToRLE(ann, height, width)
-        m = maskUtils.decode(rle)
+        m = mask_utils.decode(rle)
         return m
