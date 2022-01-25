@@ -106,6 +106,10 @@ def main(hp, num_epochs, resume, name):
         # logging accuracy and loss
         train_acc = metrics.MetricTracker()
         train_loss = metrics.MetricTracker()
+
+        dataset_train.rand()
+        dataset_valid.rand()
+
         # iterate over data
 
         loader = tqdm(train_dataloader, desc="training")
