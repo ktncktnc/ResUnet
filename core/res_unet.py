@@ -4,8 +4,9 @@ from core.modules import ResidualConv, Upsample
 
 
 class ResUnet(nn.Module):
-    def __init__(self, channel, filters=[64, 128, 256, 512]):
+    def __init__(self, channel, o_channel=1, filters=[64, 128, 256, 512]):
         super(ResUnet, self).__init__()
+        self.o_channel = o_channel
 
         self.input_layer = nn.Sequential(
             nn.Conv2d(channel, filters[0], kernel_size=3, padding=1),
@@ -32,8 +33,8 @@ class ResUnet(nn.Module):
         self.up_residual_conv3 = ResidualConv(filters[1] + filters[0], filters[0], 1, 1)
 
         self.output_layer = nn.Sequential(
-                nn.Conv2d(filters[0], 1, 1, 1),
-                nn.Sigmoid(),
+                nn.Conv2d(filters[0], o_channel, 1, 1),
+                    nn.Sigmoid(),
         )
 
     def forward(self, x):

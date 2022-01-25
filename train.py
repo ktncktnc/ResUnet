@@ -17,7 +17,10 @@ import os
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-def main(hp, num_epochs, resume, name):
+def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None):
+
+    assert (0 <= training_mode < 3)
+    assert (training_mode == 0 or training_weight is not None)
 
     checkpoint_dir = "{}/{}".format(hp.checkpoints, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -29,7 +32,7 @@ def main(hp, num_epochs, resume, name):
     if hp.RESNET_PLUS_PLUS:
         model = ResUnetPlusPlus(3).cuda()
     else:
-        model = ResUnet(3).cuda()
+        model = ResUnet(3, training_mode + 1).cuda()
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
@@ -83,8 +86,8 @@ def main(hp, num_epochs, resume, name):
     )
 
     # get data
-    dataset_train = MappingChallengeDataset(hp.dset_dir, "train", 1, hp.train_size, train_transform)
-    dataset_valid = MappingChallengeDataset(hp.dset_dir, "val", 1, hp.test_size, test_transform)
+    dataset_train = MappingChallengeDataset(hp.dset_dir, "train", training_mode, hp.train_size, train_transform)
+    dataset_valid = MappingChallengeDataset(hp.dset_dir, "val", training_mode, hp.test_size, test_transform)
 
     dataset_train.rand()
     dataset_valid.rand()
@@ -132,7 +135,10 @@ def main(hp, num_epochs, resume, name):
             outputs = model(inputs)
             # outputs = torch.nn.functional.sigmoid(outputs)
 
-            loss = criterion(outputs, labels)
+            loss = 0.0
+            for i in range(training_mode + 1):
+                _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
+                loss += training_weight[i] * loss
 
             # backward
             loss.backward()
