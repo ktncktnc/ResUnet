@@ -1,6 +1,7 @@
 import random
 import os
 import skimage
+import numpy as np
 from typing import Optional, Callable
 from torch.utils.data import Dataset
 from utils import *
