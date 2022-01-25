@@ -120,7 +120,7 @@ class MappingChallengeDataset(Dataset):
         if self.transform is not None:
             sample = self.transform(**sample)
 
-        mask = torch.zeros_like(mask)
+        mask = torch.zeros(self.mode + 1, sample['mask'].shape[0], sample['mask'].shape[1])
         mask[0, ...] = sample['mask']
         if self.mode >= 1:
             mask[1, ...] = sample['border_mask']

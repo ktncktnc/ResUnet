@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 
@@ -10,8 +11,8 @@ class BCEDiceLoss(nn.Module):
         self.weight = weight
 
     def forward(self, input, target):
-        pred = input.view(-1)
-        truth = target.view(-1)
+        pred = torch.reshape(input, (-1,))
+        truth = torch.reshape(target, (-1,))
 
         # BCE loss
         bce_loss = nn.BCELoss()(pred, truth).double()

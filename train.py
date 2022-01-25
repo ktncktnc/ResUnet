@@ -75,14 +75,22 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
         A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2()
-    ]
+      ],
+      additional_targets = {
+        'border_mask': 'mask',
+        'touching_mask': 'mask'
+      }
     )
 
     test_transform = A.Compose([
         A.Resize(256, 256),
         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2()
-    ]
+      ],
+      additional_targets = {
+        'border_mask': 'mask',
+        'touching_mask': 'mask'
+      }
     )
 
     # get data
@@ -91,9 +99,6 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
 
     dataset_train.rand()
     dataset_valid.rand()
-    print(len(dataset_train))
-    print(len(dataset_valid))
-    print(hp.batch_size)
     # creating loaders
     train_dataloader = DataLoader(
         dataset_train, batch_size=hp.batch_size, num_workers=2, shuffle=True
@@ -133,12 +138,14 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
             # prob_map = model(inputs) # last activation was a sigmoid
             # outputs = (prob_map > 0.3).float()
             outputs = model(inputs)
+
             # outputs = torch.nn.functional.sigmoid(outputs)
 
             loss = 0.0
+
             for i in range(training_mode + 1):
                 _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
-                loss += training_weight[i] * loss
+                loss += training_weight[i] * _loss
 
             # backward
             loss.backward()
@@ -159,7 +166,7 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
             # Validation
             if (step + 1) % hp.validation_interval == 0:
                 valid_metrics = validation(
-                    val_dataloader, model, criterion, writer, step
+                    val_dataloader, model, criterion, writer, step, training_mode, training_weight
                 )
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
@@ -184,7 +191,7 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
         dataset_train.rand()
 
 
-def validation(valid_loader, model, criterion, logger, step):
+def validation(valid_loader, model, criterion, logger, step, training_mode, training_weight):
 
     # logging accuracy and loss
     valid_acc = metrics.MetricTracker()
@@ -206,7 +213,11 @@ def validation(valid_loader, model, criterion, logger, step):
         outputs = model(inputs)
         # outputs = torch.nn.functional.sigmoid(outputs)
 
-        loss = criterion(outputs, labels)
+        loss = 0.0
+
+        for i in range(training_mode + 1):
+            _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
+            loss += training_weight[i] * _loss
 
         valid_acc.update(metrics.dice_coeff(outputs, labels), outputs.size(0))
         valid_loss.update(loss.data.item(), outputs.size(0))
