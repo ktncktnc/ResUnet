@@ -95,6 +95,11 @@ class MappingChallengeDataset(Dataset):
         elif self.mode == 2:
             mask = create_multiclass_mask(mask, True)
 
+        if self.mode == 0:
+            mask = np.expand_dims(mask, 0)
+        else:
+            mask = np.swapaxes(mask, 0, -1)
+
         sample = {
             "image": img,
             "mask": mask
@@ -104,8 +109,8 @@ class MappingChallengeDataset(Dataset):
             sample = self.transform(**sample)
 
         return {
-            "image": sample["image"],
-            "mask": sample["mask"]
+            "image": sample["image"].float(),
+            "mask": sample["mask"].float()
         }
 
     def load_image(self, image_id):
