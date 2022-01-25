@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 from dataset import dataloader
+from dataset.crowdaisegment import MappingChallengeDataset
 from utils import metrics
 from core.res_unet import ResUnet
 from core.res_unet_plus import ResUnetPlusPlus
@@ -13,7 +14,8 @@ from utils.logger import MyWriter
 import torch
 import argparse
 import os
-
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 def main(hp, num_epochs, resume, name):
 
@@ -30,7 +32,7 @@ def main(hp, num_epochs, resume, name):
         model = ResUnet(3, 64).cuda()
 
     # set up binary cross entropy and dice loss
-    criterion = metrics.BCEDiceLoss()
+    criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
 
     # optimizer
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, nesterov=True)
@@ -62,21 +64,34 @@ def main(hp, num_epochs, resume, name):
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
-    # get data
-    mass_dataset_train = dataloader.ImageDataset(
-        hp, transform=transforms.Compose([dataloader.ToTensorTarget()])
+    # transform
+    train_transform = A.Compose([
+        A.Resize(256, 256),
+        A.RandomGamma(),
+        A.RGBShift(p=0.2),
+        A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        ToTensorV2()
+    ]
     )
 
-    mass_dataset_val = dataloader.ImageDataset(
-        hp, False, transform=transforms.Compose([dataloader.ToTensorTarget()])
+    test_transform = A.Compose([
+        A.Resize(256, 256),
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        ToTensorV2()
+    ]
     )
+
+    # get data
+    dataset_train = MappingChallengeDataset(hp.dset_dir, "train", 1, hp.train_size, train_transform)
+    dataset_valid = MappingChallengeDataset(hp.dset_dir, "val", 1, hp.test_size, test_transform)
 
     # creating loaders
     train_dataloader = DataLoader(
-        mass_dataset_train, batch_size=hp.batch_size, num_workers=2, shuffle=True
+        dataset_train, batch_size=hp.batch_size, num_workers=2, shuffle=True
     )
     val_dataloader = DataLoader(
-        mass_dataset_val, batch_size=1, num_workers=2, shuffle=False
+        dataset_valid, batch_size=1, num_workers=2, shuffle=False
     )
 
     step = 0
@@ -97,8 +112,8 @@ def main(hp, num_epochs, resume, name):
         for idx, data in enumerate(loader):
 
             # get the inputs and wrap in Variable
-            inputs = data["sat_img"].cuda()
-            labels = data["map_img"].cuda()
+            inputs = data["image"].float().cuda()
+            labels = data["mask"].cuda()
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -127,7 +142,7 @@ def main(hp, num_epochs, resume, name):
                     )
                 )
 
-            # Validatiuon
+            # Validation
             if step % hp.validation_interval == 0:
                 valid_metrics = validation(
                     val_dataloader, model, criterion, writer, step
@@ -166,8 +181,8 @@ def validation(valid_loader, model, criterion, logger, step):
     for idx, data in enumerate(tqdm(valid_loader, desc="validation")):
 
         # get the inputs and wrap in Variable
-        inputs = data["sat_img"].cuda()
-        labels = data["map_img"].cuda()
+        inputs = data["image"].float().cuda()
+        labels = data["mask"].cuda()
 
         # forward
         # prob_map = model(inputs) # last activation was a sigmoid

@@ -5,6 +5,10 @@ class BCEDiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super().__init__()
 
+        if weight is None:
+            weight = [1.0, 1.0]
+        self.weight = weight
+
     def forward(self, input, target):
         pred = input.view(-1)
         truth = target.view(-1)
@@ -17,7 +21,7 @@ class BCEDiceLoss(nn.Module):
             pred.double().sum() + truth.double().sum() + 1
         )
 
-        return bce_loss + (1 - dice_coef)
+        return self.weight[0]*bce_loss + self.weight[1]*(1 - dice_coef)
 
 
 # https://github.com/pytorch/examples/blob/master/imagenet/main.py
