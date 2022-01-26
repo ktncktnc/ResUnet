@@ -221,8 +221,8 @@ def validation(valid_loader, model, criterion, logger, step, training_mode, trai
 
         valid_acc.update(metrics.dice_coeff(outputs, labels), outputs.size(0))
         valid_loss.update(loss.data.item(), outputs.size(0))
-        if idx == 0:
-            logger.log_images(inputs.cpu(), labels.cpu(), outputs.cpu(), step)
+        # if idx == 0:
+        #     logger.log_images(inputs.cpu(), labels.cpu(), outputs.cpu(), step)
     logger.log_validation(valid_loss.avg, valid_acc.avg, step)
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
