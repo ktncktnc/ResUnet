@@ -70,16 +70,17 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
     # transform
     train_transform = A.Compose([
         A.Resize(256, 256),
+        A.ShiftScaleRotate(shift_limit=0, scale_limit=[-0.5, 0.1], rotate_limit=10),
         A.RandomGamma(),
         A.RGBShift(p=0.2),
         A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2()
-      ],
-      additional_targets = {
-        'border_mask': 'mask',
-        'touching_mask': 'mask'
-      }
+    ],
+        additional_targets={
+            'border_mask': 'mask',
+            'touching_mask': 'mask'
+        }
     )
 
     test_transform = A.Compose([
