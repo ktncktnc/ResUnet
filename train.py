@@ -193,7 +193,7 @@ def main(hp, num_epochs, resume, name, training_mode = 0, training_weight = None
 
 
 def validation(valid_loader, model, criterion, logger, step, training_mode, training_weight):
-
+    print("Validation...")
     # logging accuracy and loss
     valid_acc = metrics.MetricTracker()
     valid_loss = metrics.MetricTracker()
@@ -202,8 +202,7 @@ def validation(valid_loader, model, criterion, logger, step, training_mode, trai
     model.eval()
 
     # Iterate over data.
-    for idx, data in enumerate(tqdm(valid_loader, desc="validation")):
-
+    for idx, data in enumerate(valid_loader):
         # get the inputs and wrap in Variable
         inputs = data["image"].float().cuda()
         labels = data["mask"].cuda()
