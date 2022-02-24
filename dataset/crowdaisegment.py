@@ -4,6 +4,7 @@ import skimage
 import numpy as np
 import torch
 
+from pathlib import Path
 from skimage import io
 from typing import Optional, Callable
 from torch.utils.data import Dataset
@@ -87,6 +88,9 @@ class MappingChallengeDataset(Dataset):
 
     def __len__(self):
         return len(self.rnd_image_info_idx)
+
+    def get_file_name(self, idx):
+        return Path(self.image_info[self.rnd_image_info_idx[idx]]['path']).name[:-4]
 
     def images_len(self):
         return len(self.image_info)
