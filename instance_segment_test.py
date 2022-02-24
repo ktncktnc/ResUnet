@@ -46,29 +46,31 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
 
     loader = tqdm(dataloader, desc="Evaluating")
-    for idx, data in enumerate(loader):
-        # get the inputs and wrap in Variable
-        inputs = data["image"].float().cuda()
-        labels = data["mask"].float().cuda()
 
-        outputs = model(inputs)
+    with torch.no_grad():
+        for idx, data in enumerate(loader):
+            # get the inputs and wrap in Variable
+            inputs = data["image"].float().cuda()
+            labels = data["mask"].float().cuda()
 
-        loss = 0.0
-        for i in range(mode + 1):
-            _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
-            loss += weights[i] * _loss
+            outputs = model(inputs)
 
-        valid_acc.update(metrics.dice_coeff(outputs, labels), outputs.size(0))
-        valid_loss.update(loss.data.item(), outputs.size(0))
+            loss = 0.0
+            for i in range(mode + 1):
+                _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
+                loss += weights[i] * _loss
 
-        print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
+            valid_acc.update(metrics.dice_coeff(outputs, labels), outputs.size(0))
+            valid_loss.update(loss.data.item(), outputs.size(0))
 
-        imgs = ((torch.sigmoid(outputs).cpu().numpy() >= threshold) * 255).astype(np.uint8)
+            imgs = ((torch.sigmoid(outputs).cpu().numpy() >= threshold) * 255).astype(np.uint8)
 
-        for i in range(batch_size):
-            filename = dataset.get_file_name(idx * batch_size + i)
-            for m in mode:
-                Image.fromarray(imgs[i, m, ...]).save(os.path.join(saved_path, "filename_{mode}.png".format(mode=m)))
+            for i in range(batch_size):
+                filename = dataset.get_file_name(idx * batch_size + i)
+                for m in range(mode + 1):
+                    Image.fromarray(imgs[i, m, ...]).save(os.path.join(saved_path, "{filename}_{mode}.png".format(filename=filename, mode=m)))
+
+    print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
 
 
 if __name__ == '__main__':
@@ -85,11 +87,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     weights = [1.0]
-    if args.mode == 1:
+    if int(args.mode) == 1:
         weights = [1.0, 0.1]
-    elif args.mode == 2:
+    elif int(args.mode) == 2:
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, args.mode, weights, args.pretrain, args.savepath, args.threshold, args.batchsize)
+    main(hp, int(args.mode), weights, args.pretrain, args.savepath, args.threshold, args.batchsize)
 
