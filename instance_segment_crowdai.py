@@ -12,6 +12,7 @@ from PIL import Image, ImagePalette
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils.hparams import HParam
+from utils.images import *
 
 
 def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False):
@@ -79,17 +80,11 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
             for i in range(batch_size):
                 filename = dataset.get_file_name(idx * batch_size + i)
 
-                # for m in range(n_masks):
-                #     Image.fromarray(imgs[i, m, ...]).save(os.path.join(saved_path, "{filename}_{mode}.png".format(filename=filename, mode=m)))
-
                 mask = imgs[i, 0, ...]
                 contour = imgs[i, 1, ...]
-                seed = ((mask * (1 - contour)) > 0.5).astype(np.uint8)
+                filepath = os.path.join(saved_path, "is_{filename}.png".format(filename=filename))
+                save_mask_and_contour(mask, contour, NUCLEI_PALETTE, filepath)
 
-                labels = label_watershed(mask, seed)
-                im = Image.fromarray(labels.astype(np.uint8), mode='P')
-                im.putpalette(NUCLEI_PALETTE)
-                im.save(os.path.join(saved_path, "is_{filename}.png".format(filename=filename)))
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
 
