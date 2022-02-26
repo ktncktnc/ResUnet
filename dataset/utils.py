@@ -4,6 +4,7 @@ from skimage import io
 from skimage import measure
 from skimage.morphology import dilation, square
 from skimage.segmentation import watershed
+import scipy.ndimage as ndimage
 
 def create_separation(labels):
     tmp = dilation(labels > 0, square(12))
@@ -62,3 +63,14 @@ def create_multiclass_mask(mask, is_contact_points=False):
             final_mask[2, ...] = create_separation(labels)
 
     return final_mask
+
+def label_watershed(before, after, component_size=20):
+    markers = ndimage.label(after)[0]
+
+    labels = watershed(-before, markers, mask=before, connectivity=8)
+    unique, counts = np.unique(labels, return_counts=True)
+
+    for (k, v) in dict(zip(unique, counts)).items():
+        if v < component_size:
+            labels[labels == k] = 0
+    return labels
