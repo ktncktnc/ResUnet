@@ -72,7 +72,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
             output1 = (model(input1).cpu().numpy() >= threshold) * 1
             output2 = (model(input2).cpu().numpy() >= threshold) * 1
 
-            for i in range(batch_size):
+            for i in range(output1.shape[0]):
                 filename = dataset.files[idx * batch_size + i]
                 filename = os.path.basename(filename['image1'])[:-4]
 
