@@ -76,8 +76,8 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 filename = dataset.files[idx * batch_size + i]
                 filename = os.path.basename(filename['image1'])[:-4]
 
-                save_mask_and_contour(output1[i, 0, ...], output1[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))
-                save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename)))
+                masks1 = save_mask_and_contour(output1[i, 0, ...], output1[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))
+                masks2 = save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename)))
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
 

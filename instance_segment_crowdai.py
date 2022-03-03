@@ -15,7 +15,7 @@ from utils.hparams import HParam
 from utils.images import *
 
 
-def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False):
+def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False, to_multiclass_tensor = False):
     assert (0 <= mode < 3)
     assert os.path.isfile(trained_path)
 
@@ -83,7 +83,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 mask = imgs[i, 0, ...]
                 contour = imgs[i, 1, ...]
                 filepath = os.path.join(saved_path, "is_{filename}.png".format(filename=filename))
-                save_mask_and_contour(mask, contour, NUCLEI_PALETTE, filepath)
+                masks = save_mask_and_contour(mask, contour, NUCLEI_PALETTE, filepath)
 
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
