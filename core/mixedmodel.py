@@ -7,8 +7,7 @@ from core.parts import *
 
 class ResUnetMultiDecoder(nn.Module):
     def __init__(self, input_channel=3, segment_o_channel=2, cd_o_channel=1, resnet=None):
-        super.__init__()
-
+        super().__init__()
         self.input_pool = None
         self.input_block = None
         self.encoder = None
@@ -70,7 +69,7 @@ class ResUnetMultiDecoder(nn.Module):
 
         for i in range(1, len(self.encoded_channels)):
             siamese_fusing_blocks.append(
-                Bridge(self.encoded_channels[-(i + 1)] * 2, self.encoded_out_channels[-(i + 1)]))
+                Bridge(self.encoded_channels[-(i + 1)] * 2, self.encoded_channels[-(i + 1)]))
 
             siamese_decoder.append(
                 UpBlockForUNetWithResNet50(self.encoded_channels[-i], self.encoded_channels[-(i + 1)]))
@@ -96,7 +95,7 @@ class ResUnetMultiDecoder(nn.Module):
         self.siamese_decoder = nn.ModuleList(siamese_decoder)
 
         siamese_fusing_blocks.append(Bridge(self.encoded_channels[0] * 2, self.encoded_channels[0]))
-        siamese_fusing_blocks.append(Bridge(self.input_channels * 2, self.input_channels))
+        siamese_fusing_blocks.append(Bridge(self.input_channel * 2, self.input_channel))
 
         self.siamese_fusing_blocks = nn.ModuleList(siamese_fusing_blocks)
 
@@ -198,7 +197,7 @@ class ResUnetMultiDecoder(nn.Module):
         return a
 
     def forward(self, x, y=None, is_segment=True):
-        assert is_segment is False and y is not None
+        assert (is_segment == True or y is not None)
 
         if is_segment:
             x = self.segment_forward(x)
