@@ -8,13 +8,14 @@ class MyWriter(SummaryWriter):
     def __init__(self, logdir):
         super(MyWriter, self).__init__(logdir)
 
-    def log_training(self, dice_loss, iou, step):
-        self.add_scalar("training/dice_loss", dice_loss, step)
-        self.add_scalar("training/iou", iou, step)
 
-    def log_validation(self, dice_loss, iou, step):
-        self.add_scalar("validation/dice_loss", dice_loss, step)
-        self.add_scalar("validation/iou", iou, step)
+    def log_training(self, dice_loss, iou, step, log_name = "training"):
+        self.add_scalar(log_name + "/dice_loss", dice_loss, step)
+        self.add_scalar(log_name + "/iou", iou, step)
+
+    def log_validation(self, dice_loss, iou, step, log_name="validation"):
+        self.add_scalar(log_name + "/dice_loss", dice_loss, step)
+        self.add_scalar(log_name + "/iou", iou, step)
 
     def log_images(self, map, target, prediction, step):
         if len(map.shape) > 3:
