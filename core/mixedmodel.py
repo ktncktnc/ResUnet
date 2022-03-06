@@ -129,7 +129,7 @@ class ResUnetMultiDecoder(nn.Module):
 
         self.segment_decoder = nn.ModuleList(segment_decoder)
         self.segment_decoder_out = nn.Sequential(
-            nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
+                nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
             nn.Sigmoid()
         )
 

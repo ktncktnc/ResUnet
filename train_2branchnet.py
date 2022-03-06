@@ -313,10 +313,6 @@ if __name__ == '__main__':
     with open(args.config, "r") as f:
         hp_str = "".join(f.readlines())
 
-    weights = [1.0]
-    if args.mode == 1:
-        weights = [1.0, 0.1]
-    elif args.mode == 2:
-        weights = [1.0, 0.1, 0.05]
+    weights = [1.0, 0.1]
 
     main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name, training_weight=weights)
