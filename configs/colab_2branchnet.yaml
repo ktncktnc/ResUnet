@@ -1,5 +1,5 @@
-segment_dset_dir: "/content/dataset"
-cd_dset_dir: "/content/dataset"
+segment_dset_dir: "/content/dataset/aicrowd"
+cd_dset_dir: "/content/dataset/s2looking"
 segment_train_size: 50000
 segment_test_size: 5000
 cd_train_size: 50000
