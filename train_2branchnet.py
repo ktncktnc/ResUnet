@@ -26,7 +26,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
 
     # Model
     resnet = models.resnet34(pretrained=True)
-    model = ResUnetMultiDecoder(resnet=resnet)
+    model = ResUnetMultiDecoder(resnet=resnet).cuda()
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
