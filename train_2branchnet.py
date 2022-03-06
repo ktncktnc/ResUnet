@@ -2,12 +2,14 @@ import warnings
 from torch.utils.data import DataLoader
 from torchvision import models
 from tqdm import tqdm
+from utils.hparams import HParam
 from dataset.crowdaisegment import MappingChallengeDataset
 from dataset.s2looking import S2Looking
 from utils import metrics
 from core.mixedmodel import ResUnetMultiDecoder
 from utils.logger import MyWriter
 import torch
+import argparse
 import os
 import albumentations as albums
 from albumentations.pytorch import ToTensorV2
@@ -15,7 +17,7 @@ warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
 
-def main(hp, num_epochs, resume, name, training_mode=0, training_weight=None):
+def main(hp, num_epochs, resume, name, training_weight=None):
     checkpoint_dir = "{}/{}".format(hp.checkpoints, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
@@ -139,15 +141,12 @@ def main(hp, num_epochs, resume, name, training_mode=0, training_weight=None):
                 # get the inputs and wrap in Variable
                 inputs = data["image"].float().cuda()
                 labels = data["mask"].float().cuda()
-
                 # zero the parameter gradients
                 optimizer.zero_grad()
-
                 # forward
                 outputs = model(inputs)
-
                 loss = 0.0
-                for i in range(training_mode + 1):
+                for i in range(2):
                     _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
                     loss += training_weight[i] * _loss
 
@@ -170,7 +169,7 @@ def main(hp, num_epochs, resume, name, training_mode=0, training_weight=None):
                 # Validation
                 if (s_step + 1) % hp.validation_interval == 0:
                     valid_metrics = validation(
-                        s_val_dataloader, model, True, criterion, writer, s_step, training_mode, training_weight
+                        s_val_dataloader, model, True, criterion, writer, s_step, training_weight
                     )
                     save_path = os.path.join(
                         checkpoint_dir, "%s_segment_checkpoint_%04d.pt" % (name, s_step)
@@ -198,14 +197,9 @@ def main(hp, num_epochs, resume, name, training_mode=0, training_weight=None):
                 i1 = data['x'][:, 0, :, :, :].float().cuda()
                 i2 = data['x'][:, 1, :, :, :].float().cuda()
                 labels = (data['mask'][:, :, :, 0] / 255.0).float().cuda()
-
+                optimizer.zero_grad()
                 outputs = model(i1, i2, True)
-
-                loss = 0.0
-                for i in range(training_mode + 1):
-                    _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
-                    loss += training_weight[i] * _loss
-
+                loss = criterion(outputs, labels)
                 # backward
                 loss.backward()
                 optimizer.step()
@@ -225,7 +219,7 @@ def main(hp, num_epochs, resume, name, training_mode=0, training_weight=None):
                 # Validation
                 if (cd_step + 1) % hp.validation_interval == 0:
                     valid_metrics = validation(
-                        cd_val_dataloader, model, False, criterion, writer, cd_step, training_mode, training_weight
+                        cd_val_dataloader, model, False, criterion, writer, cd_step, training_weight
                     )
                     save_path = os.path.join(
                         checkpoint_dir, "%s_cd_checkpoint_%04d.pt" % (name, cd_step)
@@ -248,7 +242,7 @@ def main(hp, num_epochs, resume, name, training_mode=0, training_weight=None):
                 cd_step += 1
 
 
-def validation(valid_loader, model, is_segment, criterion, logger, step, training_mode, training_weight):
+def validation(valid_loader, model, is_segment, criterion, logger, step, training_weight):
     print("Validation...")
     # logging accuracy and loss
     valid_acc = metrics.MetricTracker()
@@ -272,7 +266,11 @@ def validation(valid_loader, model, is_segment, criterion, logger, step, trainin
             outputs = model(i1, i2, True)
 
         loss = 0.0
-        for i in range(training_mode + 1):
+        if is_segment:
+            n_masks = 2
+        else:
+            n_masks = 1
+        for i in range(n_masks + 1):
             _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
             loss += training_weight[i] * _loss
 
@@ -287,3 +285,38 @@ def validation(valid_loader, model, is_segment, criterion, logger, step, trainin
     print(valid_text + "{:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
     model.train()
     return {"valid_loss": valid_loss.avg, "valid_acc": valid_acc.avg}
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Road and Building Extraction")
+    parser.add_argument(
+        "-c", "--config", type=str, required=True, help="yaml file for configuration"
+    )
+    parser.add_argument(
+        "--epochs",
+        default=75,
+        type=int,
+        metavar="N",
+        help="number of total epochs to run",
+    )
+    parser.add_argument(
+        "--resume",
+        default="",
+        type=str,
+        metavar="PATH",
+        help="path to latest checkpoint (default: none)",
+    )
+    parser.add_argument("--name", default="default", type=str, help="Experiment name")
+    parser.add_argument("--mode", default=0, type = int, help = "Training mode")
+    args = parser.parse_args()
+
+    hp = HParam(args.config)
+    with open(args.config, "r") as f:
+        hp_str = "".join(f.readlines())
+
+    weights = [1.0]
+    if args.mode == 1:
+        weights = [1.0, 0.1]
+    elif args.mode == 2:
+        weights = [1.0, 0.1, 0.05]
+
+    main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name, training_weight=weights)
