@@ -7,7 +7,7 @@ cd_test_size: 5000
 log: "logs"
 logging_step: 100
 validation_interval: 2000 # Save and valid have same interval
-checkpoints: "/content/weights"
+checkpoints: "/kaggle/working/weights"
 batch_size: 16
 lr: 0.001
 IMAGE_SIZE: 1500
