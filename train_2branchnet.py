@@ -270,7 +270,7 @@ def validation(valid_loader, model, is_segment, criterion, logger, step, trainin
             n_masks = 2
         else:
             n_masks = 1
-        for i in range(n_masks + 1):
+        for i in range(n_masks):
             _loss = criterion(outputs[:, i, ...], labels[:, i, ...])
             loss += training_weight[i] * _loss
 
