@@ -139,7 +139,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
 
         # iterate over data
         # segment
-        loader = tqdm(itertools.zip_longest(s_train_dataloader, cd_train_dataloader), desc="segment training")
+        loader = tqdm(itertools.zip_longest(s_train_dataloader, cd_train_dataloader), desc="Training")
         for idx, data in enumerate(loader):
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -169,7 +169,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
                 loss += cd_loss
 
                 cd_train_acc.update(metrics.dice_coeff(cd_outputs, cd_labels), cd_outputs.size(0))
-                cd_train_loss.update(loss.data.item(), cd_outputs.size(0))
+                cd_train_loss.update(cd_loss.data.item(), cd_outputs.size(0))
 
             # backward
             loss.backward()
@@ -229,7 +229,7 @@ def validation(segment_valid_loader, cd_valid_loader, model, criterion, logger, 
         # get the inputs and wrap in Variable
         if data[0] is not None:
             s_inputs = data[0]["image"].float().cuda()
-            s_labels = data[1]["mask"].cuda()
+            s_labels = data[0]["mask"].cuda()
             # forward
             s_outputs = model(s_inputs)
             s_loss = 0.0
@@ -244,7 +244,7 @@ def validation(segment_valid_loader, cd_valid_loader, model, criterion, logger, 
             i1 = (data[1]['x'][:, 0, :, :, :].float()).cuda()
             i2 = (data[1]['x'][:, 1, :, :, :].float()).cuda()
             cd_labels = (data[1]['mask'][:, :, :, 0] / 255.0).float().cuda()
-            cd_outputs = model(i1, i2, True)
+            cd_outputs = model(i1, i2, False)
             cd_loss = criterion(cd_outputs, cd_labels)
 
             cd_valid_acc.update(metrics.dice_coeff(cd_outputs, cd_labels), cd_outputs.size(0))
