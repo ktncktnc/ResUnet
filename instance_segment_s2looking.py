@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils.hparams import HParam
 from utils.images import *
-
+from utils.hungarian import *
 
 def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False):
     assert (0 <= mode < 3)
@@ -21,6 +21,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
     img1_save_path = os.path.join(saved_path, "img1")
     img2_save_path = os.path.join(saved_path, "img2")
+    cd_save_path = os.path.join(saved_path, "cd")
 
     if not os.path.exists(saved_path):
         os.makedirs(saved_path)
@@ -30,6 +31,9 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
     if not os.path.exists(img2_save_path):
         os.makedirs(img2_save_path)
+
+    if not os.path.exists(cd_save_path):
+        os.makedirs(cd_save_path)
 
     model = ResUnet(3, mode + 1).cuda()
     checkpoint = torch.load(trained_path)
@@ -78,6 +82,11 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
                 masks1 = save_mask_and_contour(output1[i, 0, ...], output1[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))
                 masks2 = save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename)))
+
+                # Hungarian algorithm
+                cd_map = change_detection_map(masks1, masks2, 10, 10)
+                im = Image.fromarray(cd_map, mode='P')
+                im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
 
