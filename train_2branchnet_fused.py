@@ -194,7 +194,8 @@ def main(hp, num_epochs, resume, name, training_weight=None):
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
                 )
                 # store best loss and save a model checkpoint
-                s_best_loss = min(valid_metrics["valid_loss"], s_best_loss)
+                s_best_loss = min(valid_metrics["s_valid_loss"], s_best_loss)
+                cd_best_loss = min(valid_metrics["cd_valid_loss"], cd_best_loss)
                 torch.save(
                     {
                         "step": step,
@@ -213,7 +214,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
 
 
 def validation(segment_valid_loader, cd_valid_loader, model, criterion, logger, step, training_weight):
-    print("Validation...")
+    print("\nValidation...")
     # logging accuracy and loss
     s_valid_acc = metrics.MetricTracker()
     s_valid_loss = metrics.MetricTracker()
@@ -224,7 +225,7 @@ def validation(segment_valid_loader, cd_valid_loader, model, criterion, logger, 
     model.eval()
 
     # Iterate over data.
-    loader = tqdm(itertools.zip_longest(segment_valid_loader, cd_valid_loader), desc="segment training")
+    loader = itertools.zip_longest(segment_valid_loader, cd_valid_loader)
     for idx, data in enumerate(loader):
         # get the inputs and wrap in Variable
         if data[0] is not None:
