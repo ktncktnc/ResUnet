@@ -75,7 +75,8 @@ def main(hp, num_epochs, resume, name, training_weight=None):
     ],
         additional_targets={
             'border_mask': 'mask',
-            'touching_mask': 'mask'
+            'touching_mask': 'mask',
+            'image0': 'image'
         }
     )
 
@@ -86,7 +87,8 @@ def main(hp, num_epochs, resume, name, training_weight=None):
     ],
         additional_targets={
             'border_mask': 'mask',
-            'touching_mask': 'mask'
+            'touching_mask': 'mask',
+            'image0': 'image'
         }
     )
 
