@@ -14,6 +14,7 @@ import argparse
 import os
 import albumentations as albums
 from albumentations.pytorch import ToTensorV2
+
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
@@ -94,8 +95,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
 
     # get data
     # segment
-    s_dataset_train = MappingChallengeDataset(hp.segment_dset_dir, "train", 1, hp.segment_train_size,
-                                              train_transform)
+    s_dataset_train = MappingChallengeDataset(hp.segment_dset_dir, "train", 1, hp.segment_train_size, train_transform)
     s_dataset_valid = MappingChallengeDataset(hp.segment_dset_dir, "val", 1, hp.segment_test_size, test_transform)
 
     s_dataset_train.rand()
@@ -290,7 +290,7 @@ if __name__ == '__main__':
         help="path to latest checkpoint (default: none)",
     )
     parser.add_argument("--name", default="default", type=str, help="Experiment name")
-    parser.add_argument("--mode", default=0, type = int, help = "Training mode")
+    parser.add_argument("--mode", default=0, type=int, help="Training mode")
     args = parser.parse_args()
 
     hp = HParam(args.config)
