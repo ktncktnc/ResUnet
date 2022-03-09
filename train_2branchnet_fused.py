@@ -142,40 +142,41 @@ def main(hp, num_epochs, resume, name, training_weight=None):
         loader = tqdm(itertools.zip_longest(s_train_dataloader, cd_train_dataloader), desc="Training")
         for idx, data in enumerate(loader):
             # zero the parameter gradients
-            optimizer.zero_grad()
             loss = 0.0
 
             # segment
-            if data[0] is not None:
-                s_inputs = data[0]["image"].float().cuda()
-                s_labels = data[0]["mask"].float().cuda()
-                s_outputs = model(s_inputs)
-
-                s_loss = 0.0
-                for i in range(2):
-                    _loss = criterion(s_outputs[:, i, ...], s_labels[:, i, ...])
-                    s_loss += training_weight[i] * _loss
-                loss += s_loss
-                s_loss.backward()
-
-                s_train_acc.update(metrics.dice_coeff(s_outputs, s_labels), s_outputs.size(0))
-                s_train_loss.update(s_loss.data.item(), s_outputs.size(0))
+            # if data[0] is not None:
+            #     s_inputs = data[0]["image"].float().cuda()
+            #     s_labels = data[0]["mask"].float().cuda()
+            #     s_outputs = model(s_inputs)
+            #
+            #     s_loss = 0.0
+            #     for i in range(2):
+            #         _loss = criterion(s_outputs[:, i, ...], s_labels[:, i, ...])
+            #         s_loss += training_weight[i] * _loss
+            #     loss += s_loss
+            #     s_loss.backward()
+            #
+            #     s_train_acc.update(metrics.dice_coeff(s_outputs, s_labels), s_outputs.size(0))
+            #     s_train_loss.update(s_loss.data.item(), s_outputs.size(0))
 
             if data[1] is not None:
                 cd_i1 = data[1]['x'][:, 0, ...].float().cuda()
                 cd_i2 = data[1]['x'][:, 1, ...].float().cuda()
                 cd_labels = (data[1]['mask'][:, :, :, 0] / 255.0).float().cuda()
+                optimizer.zero_grad()
+
                 cd_outputs = model(cd_i1, cd_i2, False)
                 cd_loss = criterion(cd_outputs, cd_labels)
                 loss += cd_loss
                 cd_loss.backward()
-
+                optimizer.step()
                 cd_train_acc.update(metrics.dice_coeff(cd_outputs, cd_labels), cd_outputs.size(0))
                 cd_train_loss.update(cd_loss.data.item(), cd_outputs.size(0))
 
             # backward
             # loss.backward()
-            optimizer.step()
+            # optimizer.step()
 
             # tensorboard logging
             if (step + 1) % hp.logging_step == 0:
