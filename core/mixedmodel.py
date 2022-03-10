@@ -129,7 +129,7 @@ class ResUnetMultiDecoder(nn.Module):
 
         self.segment_decoder = nn.ModuleList(segment_decoder)
         self.segment_decoder_out = nn.Sequential(
-                nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
+            nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
             nn.Sigmoid()
         )
 
@@ -148,6 +148,8 @@ class ResUnetMultiDecoder(nn.Module):
 
         for i, block in enumerate(self.encoder, 2):
             x2 = block(x2)
+            if i == 5:
+                continue
             pools[f"layer_{i}"] = x2
 
         return x2, pools
@@ -197,7 +199,7 @@ class ResUnetMultiDecoder(nn.Module):
         return a
 
     def forward(self, x, y=None, is_segment=True):
-        assert (is_segment == True or y is not None)
+        assert (is_segment is True or y is not None)
 
         if is_segment:
             x = self.segment_forward(x)

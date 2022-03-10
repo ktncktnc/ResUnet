@@ -145,6 +145,17 @@ def main(hp, num_epochs, resume, name, training_weight=None):
             optimizer.zero_grad()
             loss = 0.0
 
+            if data[1] is not None:
+                cd_i1 = data[1]['x'][:, 0, ...].float().cuda()
+                cd_i2 = data[1]['x'][:, 1, ...].float().cuda()
+                cd_labels = (data[1]['mask'][:, :, :, 0] / 255.0).float().cuda()
+                cd_outputs = model(cd_i1, cd_i2, False)
+                cd_loss = criterion(cd_outputs, cd_labels)
+                loss += cd_loss
+
+                cd_train_acc.update(metrics.dice_coeff(cd_outputs, cd_labels), cd_outputs.size(0))
+                cd_train_loss.update(cd_loss.data.item(), cd_outputs.size(0))
+
             # segment
             if data[0] is not None:
                 s_inputs = data[0]["image"].float().cuda()
@@ -159,17 +170,6 @@ def main(hp, num_epochs, resume, name, training_weight=None):
 
                 s_train_acc.update(metrics.dice_coeff(s_outputs, s_labels), s_outputs.size(0))
                 s_train_loss.update(s_loss.data.item(), s_outputs.size(0))
-
-            # if data[1] is not None:
-            #     cd_i1 = data[1]['x'][:, 0, ...].float().cuda()
-            #     cd_i2 = data[1]['x'][:, 1, ...].float().cuda()
-            #     cd_labels = (data[1]['mask'][:, :, :, 0] / 255.0).float().cuda()
-            #     cd_outputs = model(cd_i1, cd_i2, False)
-            #     cd_loss = criterion(cd_outputs, cd_labels)
-            #     loss += cd_loss
-            #
-            #     cd_train_acc.update(metrics.dice_coeff(cd_outputs, cd_labels), cd_outputs.size(0))
-            #     cd_train_loss.update(cd_loss.data.item(), cd_outputs.size(0))
 
             # backward
             loss.backward()
