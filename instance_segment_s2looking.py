@@ -75,16 +75,17 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
             output1 = (model(input1).cpu().numpy() >= threshold) * 1
             output2 = (model(input2).cpu().numpy() >= threshold) * 1
-
+            print(output1.shape)
             for i in range(output1.shape[0]):
                 filename = dataset.files[idx * batch_size + i]
                 filename = os.path.basename(filename['image1'])[:-4]
 
                 masks1 = save_mask_and_contour(output1[i, 0, ...], output1[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))
                 masks2 = save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename)))
-
+                print(masks1.shape)
+                print(masks2.shape)
                 # Hungarian algorithm
-                cd_map = change_detection_map(masks1, masks2, 10, 10)
+                cd_map = change_detection_map(masks1, masks2, masks1.shape[1], masks1.shape[2])
                 im = Image.fromarray(cd_map, mode='P')
                 im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
 
