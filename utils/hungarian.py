@@ -136,7 +136,7 @@ def change_detection_map(masks1, masks2, w, h):
     for layer in range(masks2.shape[0]):
       if(layer < masks2.shape[0]):
         CD_map = CD_map | masks2[layer].numpy()
-    return CD_map
+    return CD_map.numpy()
 
   loss12 = loss_between_2_masks(masks1, masks2, w, h)
   row_ind, col_ind = hungarians_calc(loss12)
