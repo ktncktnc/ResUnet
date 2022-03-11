@@ -87,7 +87,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 masks1 = torch.from_numpy(masks1)
                 masks2 = torch.from_numpy(masks2)
                 # Hungarian algorithm
-                cd_map = change_detection_map(masks1, masks2, 256, 256)
+                cd_map = change_detection_map(masks1, masks2, 256, 256).numpy()
                 im = Image.fromarray(cd_map, mode='P')
                 im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
 
