@@ -119,7 +119,7 @@ def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=1, beta=1, gamma=1):
     return -1 * alpha * torch.log(iou) + beta * l1 + gamma * xor_mask
 
 
-def hungarians_calc(loss_matrix, threshold=1.3):
+def hungarians_calc(loss_matrix, threshold=1.5):
     row_ind, col_ind = linear_sum_assignment(loss_matrix)
     for i in range(len(col_ind)):
         if loss_matrix[i][col_ind[i]] > threshold:
