@@ -16,7 +16,7 @@ from utils.images import *
 from utils.hungarian import *
 import sys
 
-numpy.set_printoptions(threshold=sys.maxsize)
+np.set_printoptions(threshold=sys.maxsize)
 
 def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False):
     assert (0 <= mode < 3)
