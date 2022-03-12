@@ -14,6 +14,9 @@ from tqdm import tqdm
 from utils.hparams import HParam
 from utils.images import *
 from utils.hungarian import *
+import sys
+
+numpy.set_printoptions(threshold=sys.maxsize)
 
 def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False):
     assert (0 <= mode < 3)
@@ -84,6 +87,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 masks2 = save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename)))
                 print(masks1.shape)
                 print(masks2.shape)
+                print(masks2[0])
                 masks1 = torch.from_numpy(masks1)
                 masks2 = torch.from_numpy(masks2)
                 # Hungarian algorithm
