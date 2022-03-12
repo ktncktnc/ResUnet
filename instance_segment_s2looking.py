@@ -14,9 +14,6 @@ from tqdm import tqdm
 from utils.hparams import HParam
 from utils.images import *
 from utils.hungarian import *
-import sys
-
-np.set_printoptions(threshold=sys.maxsize)
 
 def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False):
     assert (0 <= mode < 3)
@@ -25,7 +22,6 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     img1_save_path = os.path.join(saved_path, "img1")
     img2_save_path = os.path.join(saved_path, "img2")
     cd_save_path = os.path.join(saved_path, "cd")
-    masks_save_path = os.path.join(saved_path, "masks")
 
     if not os.path.exists(saved_path):
         os.makedirs(saved_path)
@@ -38,9 +34,6 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
     if not os.path.exists(cd_save_path):
         os.makedirs(cd_save_path)
-        
-    if not os.path.exists(masks_save_path):
-        os.makedirs(masks_save_path)
 
     model = ResUnet(3, mode + 1).cuda()
     checkpoint = torch.load(trained_path)
