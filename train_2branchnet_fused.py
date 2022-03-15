@@ -38,6 +38,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
     # decay LR
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 
+    step = 0
     # starting params
     s_best_loss = 999
     cd_best_loss = 999
@@ -52,6 +53,7 @@ def main(hp, num_epochs, resume, name, training_weight=None):
 
             s_best_loss = checkpoint["s_best_loss"]
             cd_best_loss = checkpoint["cd_best_loss"]
+            step = checkpoint["step"]
 
             model.load_state_dict(checkpoint["state_dict"])
             optimizer.load_state_dict(checkpoint["optimizer"])
@@ -120,7 +122,6 @@ def main(hp, num_epochs, resume, name, training_weight=None):
         cd_dataset_test, batch_size=hp.batch_size, num_workers=2, shuffle=False
     )
 
-    step = 0
     for epoch in range(start_epoch, num_epochs):
         print("Epoch {}/{}".format(epoch, num_epochs - 1))
         print("-" * 10)
