@@ -22,6 +22,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     img1_save_path = os.path.join(saved_path, "img1")
     img2_save_path = os.path.join(saved_path, "img2")
     cd_save_path = os.path.join(saved_path, "cd")
+    masks_save_path = os.path.join(saved_path, "masks")
 
     if not os.path.exists(saved_path):
         os.makedirs(saved_path)
@@ -35,6 +36,9 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     if not os.path.exists(cd_save_path):
         os.makedirs(cd_save_path)
 
+    if not os.path.exists(masks_save_path):
+        os.makedirs(masks_save_path)
+        
     model = ResUnet(3, mode + 1).cuda()
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
@@ -75,17 +79,22 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
             output1 = (model(input1).cpu().numpy() >= threshold) * 1
             output2 = (model(input2).cpu().numpy() >= threshold) * 1
-
+            print(output1.shape)
             for i in range(output1.shape[0]):
                 filename = dataset.files[idx * batch_size + i]
                 filename = os.path.basename(filename['image1'])[:-4]
 
-                masks1 = save_mask_and_contour(output1[i, 0, ...], output1[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))
-                masks2 = save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename)))
-
+                masks1 = save_mask_and_contour(output1[i, 0, ...], output1[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename))).astype(int)
+                masks2 = save_mask_and_contour(output2[i, 0, ...], output2[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename))).astype(int)
+                if filename == "512":
+                    np.savetxt(os.path.join(masks_save_path, "{filename}_1.txt".format(filename=filename)), masks1.reshape(masks1.shape[0], -1), delimiter=',')
+                    np.savetxt(os.path.join(masks_save_path, "{filename}_2.txt".format(filename=filename)), masks2.reshape(masks2.shape[0], -1), delimiter=',')
+                masks1 = torch.from_numpy(masks1)
+                masks2 = torch.from_numpy(masks2)
                 # Hungarian algorithm
-                cd_map = change_detection_map(masks1, masks2, 10, 10)
-                im = Image.fromarray(cd_map, mode='P')
+                cd_map = change_detection_map(masks1, masks2, 256, 256)
+                cd_image = (cd_map * 255).astype(np.uint8)
+                im = Image.fromarray(cd_image, mode='P')
                 im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))

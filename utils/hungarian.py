@@ -111,15 +111,15 @@ def l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h):  # (N, 4)
     return result
 
 
-def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=1, beta=1, gamma=1):
+def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=2, beta=4, gamma=1):
     boxes1, boxes2 = turn_2_masks_to_boxes(masks1, masks2)
     iou, union = box_iou(boxes1, boxes2)
     l1 = l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h)
     xor_mask = xor_between_2_masks(masks1, masks2)
-    return -1 * alpha * torch.log(iou) + beta * l1 + gamma * xor_mask
+    return -1 * alpha * iou + beta * l1 + gamma * xor_mask
 
 
-def hungarians_calc(loss_matrix, threshold=1.3):
+def hungarians_calc(loss_matrix, threshold=2.8):
     row_ind, col_ind = linear_sum_assignment(loss_matrix)
     for i in range(len(col_ind)):
         if loss_matrix[i][col_ind[i]] > threshold:
@@ -128,20 +128,30 @@ def hungarians_calc(loss_matrix, threshold=1.3):
 
 
 def change_detection_map(masks1, masks2, w, h):
-    loss12 = loss_between_2_masks(masks1, masks2, w, h)
-    row_ind, col_ind = hungarians_calc(loss12)
-    error_bboxes1 = np.where(col_ind == -1)
+  CD_map = torch.zeros(w, h).int()
+  if(masks1.shape[0] == 0 or masks2.shape[0] == 0):
+    for layer in range(masks1.shape[0]):
+      if(layer < masks1.shape[0]):
+        CD_map = CD_map | masks1[layer].numpy()
+    for layer in range(masks2.shape[0]):
+      if(layer < masks2.shape[0]):
+        CD_map = CD_map | masks2[layer].numpy()
+    return CD_map.numpy()
 
-    loss21 = loss_between_2_masks(masks2, masks1, w, h)
-    row_ind, col_ind = hungarians_calc(loss21)
-    error_bboxes2 = np.where(col_ind == -1)
+  loss12 = loss_between_2_masks(masks1, masks2, w, h)
+  row_ind, col_ind = hungarians_calc(loss12)
+  error_bboxes1 = np.where(col_ind == -1)
 
-    cd_map = np.zeros_like(masks1[0])
-    for layer in error_bboxes1[0]:
-        if layer < masks1.shape[0]:
-            cd_map = cd_map | masks1[layer].numpy()
-    for layer in error_bboxes2[0]:
-        if layer < masks2.shape[0]:
-            cd_map = cd_map | masks2[layer].numpy()
+  loss21 = loss_between_2_masks(masks2, masks1, w, h)
+  row_ind, col_ind = hungarians_calc(loss21)
+  error_bboxes2 = np.where(col_ind == -1)
 
-    return cd_map
+  
+  for layer in error_bboxes1[0]:
+    if(layer < masks1.shape[0]):
+      CD_map = CD_map | masks1[layer]
+  for layer in error_bboxes2[0]:
+    if(layer < masks2.shape[0]):
+      CD_map = CD_map | masks2[layer]
+  
+  return CD_map.numpy()
