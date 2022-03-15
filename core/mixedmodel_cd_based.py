@@ -213,7 +213,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def change_encoder_trainable(self, trainable = True):
+    def change_encoder_trainable(self, trainable=True):
         for param in self.input_block.parameters():
             param.requires_grad = trainable
 
@@ -221,5 +221,7 @@ class DependentResUnetMultiDecoder(nn.Module):
             param.requires_grad = trainable
 
         for block in enumerate(self.encoder):
-            for param in block.parameters():
-                param.requires_grad = trainable
+            for a in block[1]:
+                for b in a.children():
+                    for param in b.parameters():
+                        param.require_grad = trainable
