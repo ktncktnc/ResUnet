@@ -110,6 +110,7 @@ def l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h):  # (N, 4)
             result[i][j] = F.l1_loss(boxes_c1[i], boxes_c2[j], reduction='sum').item()
     return result
 
+
 def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=1, beta=6):
     boxes1, boxes2 = turn_2_masks_to_boxes(masks1, masks2)
     iou, union = box_iou(boxes1, boxes2)
