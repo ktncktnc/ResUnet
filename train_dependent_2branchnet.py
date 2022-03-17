@@ -5,7 +5,7 @@ from tqdm import tqdm
 from utils.hparams import HParam
 from dataset.s2looking_allmask import S2LookingAllMask
 from utils import metrics
-from core.mixedmodel import ResUnetMultiDecoder
+from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from utils.logger import MyWriter
 import torch
 import argparse
@@ -25,7 +25,7 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
 
     # Model
     resnet = models.resnet34(pretrained=True)
-    model = ResUnetMultiDecoder(resnet=resnet).cuda()
+    model = DependentResUnetMultiDecoder(resnet=resnet).cuda()
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
