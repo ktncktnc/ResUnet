@@ -80,10 +80,10 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         mask = np.array(Image.open(files["mask"]))
         mask = np.expand_dims(mask, axis=2)
 
-        mask1 = np.array(Image.open(files["mask1"]))
+        mask1 = np.array(Image.open(files["mask1"]))[..., 2]
         mask1 = create_multiclass_mask(mask1, False)
 
-        mask2 = np.array(Image.open(files["mask2"]))
+        mask2 = np.array(Image.open(files["mask2"]))[..., 0]
         mask2 = create_multiclass_mask(mask2, False)
 
         sample = {
