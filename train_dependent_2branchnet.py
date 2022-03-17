@@ -122,9 +122,9 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
         cd_train_acc = metrics.MetricTracker()
         cd_train_loss = metrics.MetricTracker()
 
-        loader = tqdm(enumerate(cd_train_dataloader), desc="Training")
+        loader = tqdm(cd_train_dataloader, desc="Training")
         # iterate over data
-        for idx, data in loader:
+        for data in loader:
             # zero the parameter gradients
             optimizer.zero_grad()
 
