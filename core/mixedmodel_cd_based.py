@@ -105,7 +105,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         )
 
     def create_segment_decoder(self):
-        self.segment_bridge = Bridge(self.encoded_channels[-1] + 1, self.encoded_channels[-1])
+        self.segment_bridge = Bridge(self.encoded_channels[-1], self.encoded_channels[-1])
 
         segment_decoder = []
         for i in range(1, len(self.encoded_channels)):
@@ -202,19 +202,29 @@ class DependentResUnetMultiDecoder(nn.Module):
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
+        print(pools['layer_0'].shape)
         pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
+        print(pools['layer_0'].shape)
         x = self.segment_bridge(x)
+        print("bridge ok")
         a = self.segment_decode(x, pools)
+        print("decoder ok")
         a = self.segment_decoder_out(a)
         return a
 
     def forward(self, x, y):
         output = self.siamese_forward(x, y)
+        cm = output['cm']
+        print(cm.shape)
 
-        x = self.segment_forward(x, output['pools_x'])
-        y = self.segment_forward(y, output['pools_y'])
+        x = self.segment_forward(output['x'], output['pools_x'], cm)
+        y = self.segment_forward(output['y'], output['pools_y'], cm)
 
-        return output['cm'], x, y
+        return {
+            "cm": cm,
+            "x": x,
+            "y": y
+        }
 
     def change_encoder_trainable(self, trainable=True):
         for param in self.input_block.parameters():
