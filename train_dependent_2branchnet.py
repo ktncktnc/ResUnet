@@ -208,8 +208,7 @@ def validation(cd_valid_loader, model, criterion, logger, step, training_weight)
     model.eval()
 
     # Iterate over data.
-    loader = enumerate(cd_valid_loader)
-    for idx, data in enumerate(loader):
+    for data in cd_valid_loader:
         # get the inputs and wrap in Variable
         i1 = data['x'].cuda()
         i2 = data['y'].cuda()
