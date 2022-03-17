@@ -37,7 +37,9 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                 additional_targets={
                     'image0': 'image',
                     'mask1': 'mask',
-                    'mask2': 'mask'
+                    'mask2': 'mask',
+                    'border_mask1': 'mask',
+                    'border_mask2': 'mask'
                 }
             ),
     ):

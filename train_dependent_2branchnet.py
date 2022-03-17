@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from torchvision import models
 from tqdm import tqdm
 from utils.hparams import HParam
-from dataset.s2looking import S2Looking
+from dataset.s2looking_allmask import S2LookingAllMask
 from utils import metrics
 from core.mixedmodel import ResUnetMultiDecoder
 from utils.logger import MyWriter
@@ -74,9 +74,11 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
         ToTensorV2()
     ],
         additional_targets={
-            'border_mask': 'mask',
-            'touching_mask': 'mask',
-            'image0': 'image'
+            'image0': 'image',
+            'mask1': 'mask',
+            'mask2': 'mask',
+            'border_mask1': 'mask',
+            'border_mask2': 'mask'
         }
     )
 
@@ -86,16 +88,18 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
         ToTensorV2()
     ],
         additional_targets={
-            'border_mask': 'mask',
-            'touching_mask': 'mask',
-            'image0': 'image'
+            'image0': 'image',
+            'mask1': 'mask',
+            'mask2': 'mask',
+            'border_mask1': 'mask',
+            'border_mask2': 'mask'
         }
     )
 
     # get data
     # cd
-    cd_dataset_train = S2Looking(hpconfig.cd_dset_dir, "train", train_transform)
-    cd_dataset_test = S2Looking(hpconfig.cd_dset_dir, "val", test_transform)
+    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train", train_transform)
+    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "val", test_transform)
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
