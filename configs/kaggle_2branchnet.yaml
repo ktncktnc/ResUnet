@@ -2,7 +2,7 @@ segment_dset_dir: "/kaggle/working/dataset"
 cd_dset_dir: "/kaggle/input/s2looking/S2Looking/S2Looking"
 log: "logs"
 logging_step: 10
-validation_interval: 200 # Save and valid have same interval
+validation_interval: 10 # Save and valid have same interval
 checkpoints: "/kaggle/working/weights"
 batch_size: 16
 lr: 0.001
