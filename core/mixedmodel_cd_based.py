@@ -121,7 +121,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         # Working with input img
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel),
+            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel + 1),
             out_channels=int(self.encoded_channels[1] / 4),
             up_conv_in_channels=self.encoded_channels[1],
             up_conv_out_channels=int(self.encoded_channels[1] / 2)
@@ -182,7 +182,13 @@ class DependentResUnetMultiDecoder(nn.Module):
         a = self.siamese_decode(a, pools)
         a = self.siamese_decoder_out(a)
 
-        return x, y, a
+        return {
+            "x": x,
+            "pools_x": encoder_pools_x,
+            "y": y,
+            "pools_y": encoder_pools_y,
+            "cm": a
+        }
 
     def segment_decode(self, x, encoder_pools):
         for i, block in enumerate(self.segment_decoder, 1):
@@ -191,27 +197,24 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def segment_forward(self, x, cm):
+    def segment_forward(self, x, pools, cm):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
-        x, encoder_pools = self.encode(x)
-
-        x = torch.cat([x, cm], 1)
+        pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
         x = self.segment_bridge(x)
-        a = self.segment_decode(x, encoder_pools)
+        a = self.segment_decode(x, pools)
         a = self.segment_decoder_out(a)
         return a
 
-    def forward(self, x, y, is_segment=True):
-        feature_x, feature_y, cm = self.siamese_forward(x, y)
-        if not is_segment:
-            return cm
+    def forward(self, x, y):
+        output = self.siamese_forward(x, y)
 
-        x = self.segment_forward(x, feature_x)
+        x = self.segment_forward(x, output['pools_x'])
+        y = self.segment_forward(y, output['pools_y'])
 
-        return x
+        return output['cm'], x, y
 
     def change_encoder_trainable(self, trainable=True):
         for param in self.input_block.parameters():
