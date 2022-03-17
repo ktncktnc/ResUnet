@@ -211,7 +211,6 @@ class DependentResUnetMultiDecoder(nn.Module):
     def forward(self, x, y):
         output = self.siamese_forward(x, y)
         cm = output['cm']
-        print(cm.shape)
 
         x = self.segment_forward(output['x'], output['pools_x'], cm)
         y = self.segment_forward(output['y'], output['pools_y'], cm)
