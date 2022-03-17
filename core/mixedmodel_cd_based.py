@@ -202,13 +202,9 @@ class DependentResUnetMultiDecoder(nn.Module):
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
-        print(pools['layer_0'].shape)
         pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
-        print(pools['layer_0'].shape)
         x = self.segment_bridge(x)
-        print("bridge ok")
         a = self.segment_decode(x, pools)
-        print("decoder ok")
         a = self.segment_decoder_out(a)
         return a
 
