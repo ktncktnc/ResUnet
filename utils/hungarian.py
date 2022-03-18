@@ -74,7 +74,7 @@ def boxes_xyxy_to_cxcywh(boxes, p_w, p_h):
     return result[1:, :]
 
 
-def box_iou(boxes1, boxes2, error=1e-5):
+def box_iou(boxes1, boxes2, error = 1e-2):
     """Calculate the IoU of bboxes of 2 pictures
     """
     area1 = box_area(boxes1)
@@ -91,41 +91,34 @@ def box_iou(boxes1, boxes2, error=1e-5):
     iou = inter / union + error
     return iou, union
 
+# def xor_between_2_masks(masks1, masks2, error = 1e-2):
+#   result = (torch.ones(max(masks1.shape[0],masks2.shape[0]),max(masks1.shape[0],masks2.shape[0])) - error) * torch.numel(masks1[0])
+#   for i in range(masks1.shape[0]):
+#     for j in range(masks2.shape[0]):
+#       xor_mask = torch.bitwise_xor(masks1[i], masks2[j])
+#       result[i][j] = torch.sum(xor_mask)
+#   return 1 - (result / torch.numel(masks1[0]))
 
-def xor_between_2_masks(masks1, masks2):
-    result = torch.ones(max(masks1.shape[0], masks2.shape[0]), max(masks1.shape[0], masks2.shape[0])) * torch.numel(
-        masks1[0])
-    for i in range(masks1.shape[0]):
-        for j in range(masks2.shape[0]):
-            xor_mask = torch.bitwise_xor(masks1[i], masks2[j])
-            result[i][j] = torch.sum(xor_mask)
-    return result / torch.numel(masks1[0])
-
-
-def l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h):  # (N, 4)
+def l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h): #(N, 4)
     boxes_c1, boxes_c2 = boxes_xyxy_to_cxcywh(boxes1, p_w, p_h), boxes_xyxy_to_cxcywh(boxes2, p_w, p_h)
-    result = torch.zeros(boxes1.shape[0], boxes2.shape[0])
+    result = torch.zeros(boxes1.shape[0],boxes2.shape[0])
     for i in range(boxes1.shape[0]):
-        for j in range(boxes2.shape[0]):
-            result[i][j] = F.l1_loss(boxes_c1[i], boxes_c2[j], reduction='sum').item()
+      for j in range(boxes2.shape[0]):
+        result[i][j] = 1 - F.l1_loss(boxes_c1[i], boxes_c2[j], reduction='mean').item()
     return result
 
-
-def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=2, beta=4, gamma=1):
+def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=1, beta=6):
     boxes1, boxes2 = turn_2_masks_to_boxes(masks1, masks2)
     iou, union = box_iou(boxes1, boxes2)
     l1 = l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h)
-    xor_mask = xor_between_2_masks(masks1, masks2)
-    return -1 * alpha * iou + beta * l1 + gamma * xor_mask
+    return -1 * alpha * torch.log10(iou) - beta * torch.log10(l1)  
 
-
-def hungarians_calc(loss_matrix, threshold=2.8):
+def hungarians_calc(loss_matrix, threshold = 0.577):
     row_ind, col_ind = linear_sum_assignment(loss_matrix)
     for i in range(len(col_ind)):
-        if loss_matrix[i][col_ind[i]] > threshold:
-            col_ind[i] = -1
+      if loss_matrix[i][col_ind[i]] > threshold:
+          col_ind[i] = -1
     return row_ind, col_ind
-
 
 def change_detection_map(masks1, masks2, w, h):
   CD_map = torch.zeros(w, h).int()
