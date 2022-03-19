@@ -94,7 +94,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
             cm = (outputs['cm'].cpu().numpy() >= threshold) * 1
             x = (outputs['x'].cpu().numpy() >= threshold) * 1
-            y = (outputs['y '].cpu().numpy() >= threshold) * 1
+            y = (outputs['y'].cpu().numpy() >= threshold) * 1
 
             for i in range(cm.shape[0]):
                 filename = dataset.files[idx * batch_size + i]
