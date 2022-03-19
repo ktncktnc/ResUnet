@@ -107,8 +107,11 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 # Hungarian algorithm
                 cd_map = change_detection_map(masks1, masks2, 256, 256)
                 cd_image = (cd_map * 255).astype(np.uint8)
-                im = Image.fromarray(cd_image, mode='P')
-                im.save(os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
+                # im = Image.fromarray(cd_image, mode='P')
+                # im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
+                mask_color_1 = convert_to_color_map(masks1)
+                mask_color_2 = convert_to_color_map(masks2)
+                plot_and_save(mask_color_1, mask_color_2, cd_image, os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                 cm_im = Image.fromarray(cm, mode='P')
                 cm_im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
