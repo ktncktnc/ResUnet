@@ -102,9 +102,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
                 masks1 = save_mask_and_contour(x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename))).astype(int)
                 masks2 = save_mask_and_contour(y[i, 0, ...], y[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename))).astype(int)
-                if filename == "512":
-                    np.savetxt(os.path.join(masks_save_path, "{filename}_1.txt".format(filename=filename)), masks1.reshape(masks1.shape[0], -1), delimiter=',')
-                    np.savetxt(os.path.join(masks_save_path, "{filename}_2.txt".format(filename=filename)), masks2.reshape(masks2.shape[0], -1), delimiter=',')
+
                 masks1 = torch.from_numpy(masks1)
                 masks2 = torch.from_numpy(masks2)
                 # Hungarian algorithm
