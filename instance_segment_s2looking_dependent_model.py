@@ -114,7 +114,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 mask_color_2 = convert_to_color_map(masks2)
                 plot_and_save(mask_color_1, mask_color_2, cd_image, os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                cm_im = Image.fromarray(cm[i, 0, ...], mode='P')
+                cm_im = Image.fromarray((cm[i, 0, ...]*255).astype(np.uint8), mode='P')
                 cm_im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
