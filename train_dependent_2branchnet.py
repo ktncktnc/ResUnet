@@ -131,8 +131,8 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             cd_i1 = data['x'].cuda()
             cd_i2 = data['y'].cuda()
             cd_labels = (data['mask'][..., 0] / 255.0).cuda()
-            cd_labels1 = (data['mask1'] / 255.0).cuda()
-            cd_labels2 = (data['mask2'] / 255.0).cuda()
+            cd_labels1 = (data['mask1']).cuda()
+            cd_labels2 = (data['mask2']).cuda()
 
             outputs = model(cd_i1, cd_i2)
 
