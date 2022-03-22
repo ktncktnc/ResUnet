@@ -137,7 +137,7 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             outputs = model(cd_i1, cd_i2)
 
             # CD loss
-            cd_loss = criterion(outputs['cm'], cd_labels)
+            #cd_loss = criterion(outputs['cm'], cd_labels)
 
             # Segment loss
             segment_loss = 0.0
@@ -146,10 +146,10 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
                 _loss2 = criterion(outputs['y'][:, i, ...], cd_labels2[:, i, ...])
                 segment_loss += training_weight[i] * (_loss1 + _loss2)/2.0
 
-            loss = cd_loss + segment_loss*0.9
+            loss = segment_loss
 
-            cd_train_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
-            cd_train_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
+            #cd_train_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
+            #cd_train_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
 
             s_train_acc.update(metrics.dice_coeff(outputs['x'], cd_labels1), outputs['x'].size(0))
             s_train_loss.update(segment_loss.data.item(), outputs['x'].size(0))
@@ -160,10 +160,10 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             # tensorboard logging
             if (step + 1) % hpconfig.logging_step == 0:
                 writer.log_training(s_train_loss.avg, s_train_acc.avg, step, "s_training")
-                writer.log_training(cd_train_loss.avg, cd_train_acc.avg, step, "cd_training")
+                #writer.log_training(cd_train_loss.avg, cd_train_acc.avg, step, "cd_training")
                 loader.set_description(
-                    "S training Loss: {:.4f} acc: {:.4f} CD training Loss: {:.4f} acc: {:.4f}".format(
-                        s_train_loss.avg, s_train_acc.avg, cd_train_loss.avg, cd_train_acc.avg
+                    "S training Loss: {:.4f} acc: {:.4f}".format(
+                        s_train_loss.avg, s_train_acc.avg
                     )
                 )
 
@@ -177,7 +177,6 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
                 )
                 # store best loss and save a model checkpoint
                 s_best_loss = min(valid_metrics["s_valid_loss"], s_best_loss)
-                cd_best_loss = min(valid_metrics["cd_valid_loss"], cd_best_loss)
                 torch.save(
                     {
                         "step": step,
@@ -185,7 +184,6 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
                         "arch": "ResUnet",
                         "state_dict": model.state_dict(),
                         "s_best_loss": s_best_loss,
-                        "cd_best_loss": cd_best_loss,
                         "optimizer": optimizer.state_dict(),
                     },
                     save_path,
@@ -216,7 +214,7 @@ def validation(cd_valid_loader, model, criterion, logger, step, training_weight)
         cd_labels2 = (data['mask2'] / 255.0).cuda()
 
         outputs = model(i1, i2)
-        cd_loss = criterion(outputs['cm'], cd_labels)
+        #cd_loss = criterion(outputs['cm'], cd_labels)
 
         s_loss = 0.0
         for i in range(2):
@@ -225,25 +223,23 @@ def validation(cd_valid_loader, model, criterion, logger, step, training_weight)
             s_loss += training_weight[i] * _loss1
             s_loss += training_weight[i] * _loss2
 
-        cd_valid_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
-        cd_valid_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
+        #cd_valid_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
+        #cd_valid_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
 
         s_valid_acc.update(metrics.dice_coeff(outputs['x'], cd_labels1), outputs['x'].size(0))
         s_valid_loss.update(s_loss.data.item(), outputs['x'].size(0))
 
     logger.log_validation(s_valid_acc.avg, s_valid_loss.avg, step, "s_validation")
-    logger.log_validation(cd_valid_acc.avg, cd_valid_loss.avg, step, "cd_validation")
+    #logger.log_validation(cd_valid_acc.avg, cd_valid_loss.avg, step, "cd_validation")
 
-    print("Segment validation loss: {:.4f} Acc: {:.4f} CD validation loss: {:.4f} Acc: {:.4f}"
-          .format(s_valid_loss.avg, s_valid_acc.avg, cd_valid_loss.avg, cd_valid_acc.avg))
+    print("Segment validation loss: {:.4f} Acc: {:.4f}"
+          .format(s_valid_loss.avg, s_valid_acc.avg))
 
     model.train()
 
     return {
         "s_valid_loss": s_valid_loss.avg,
         "s_valid_acc": s_valid_acc.avg,
-        "cd_valid_loss": cd_valid_loss.avg,
-        "cd_valid_acc": cd_valid_acc.avg
     }
 
 
