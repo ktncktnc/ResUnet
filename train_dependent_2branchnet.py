@@ -144,10 +144,9 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             for i in range(2):
                 _loss1 = criterion(outputs['x'][:, i, ...], cd_labels1[:, i, ...])
                 _loss2 = criterion(outputs['y'][:, i, ...], cd_labels2[:, i, ...])
-                segment_loss += training_weight[i] * _loss1
-                segment_loss += training_weight[i] * _loss2
+                segment_loss += training_weight[i] * (_loss1 + _loss2)/2.0
 
-            loss = cd_loss + segment_loss
+            loss = cd_loss + segment_loss*0.9
 
             cd_train_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
             cd_train_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
