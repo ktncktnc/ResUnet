@@ -130,9 +130,9 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
 
             cd_i1 = data['x'].cuda()
             cd_i2 = data['y'].cuda()
-            cd_labels = (data['mask'][..., 0] / 255.0).cuda()
-            cd_labels1 = (data['mask1']).cuda()
-            cd_labels2 = (data['mask2']).cuda()
+            cd_labels = data['mask'].cuda()
+            cd_labels1 = data['mask1'].cuda()
+            cd_labels2 = data['mask2'].cuda()
 
             outputs = model(cd_i1, cd_i2)
 
@@ -211,9 +211,9 @@ def validation(cd_valid_loader, model, criterion, logger, step, training_weight)
         # get the inputs and wrap in Variable
         i1 = data['x'].cuda()
         i2 = data['y'].cuda()
-        cd_labels = (data['mask'][..., 0] / 255.0).cuda()
-        cd_labels1 = (data['mask1']).cuda()
-        cd_labels2 = (data['mask2']).cuda()
+        cd_labels = data['mask'].cuda()
+        cd_labels1 = data['mask1'].cuda()
+        cd_labels2 = data['mask2'].cuda()
 
         outputs = model(i1, i2)
         cd_loss = criterion(outputs['cm'], cd_labels)

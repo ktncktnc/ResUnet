@@ -77,7 +77,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         image1 = np.array(Image.open(files["image1"]))
         image2 = np.array(Image.open(files["image2"]))
 
-        mask = np.array(Image.open(files["mask"]))
+        mask = np.array(Image.open(files["mask"]))/255.0
         mask = np.expand_dims(mask, axis=2)
 
         mask1 = np.array(Image.open(files["mask1"]))[..., 2]
@@ -100,7 +100,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
 
         image1 = transformed['image']
         image2 = transformed['image0']
-        mask = transformed['mask']
+        mask = transformed['mask'][..., 0]
 
         mask1 = torch.zeros(2, mask.shape[0], mask.shape[1])
         mask1[0, ...] = transformed['mask1']
