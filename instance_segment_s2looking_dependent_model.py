@@ -87,9 +87,6 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
         for (idx, data) in enumerate(loader):
             cd_i1 = data['x'].cuda()
             cd_i2 = data['y'].cuda()
-            cd_labels = (data['mask'][..., 0] / 255.0).cuda()
-            cd_labels1 = (data['mask1'] / 255.0).cuda()
-            cd_labels2 = (data['mask2'] / 255.0).cuda()
             outputs = model(cd_i1, cd_i2)
 
             cm = (outputs['cm'].cpu().numpy() >= threshold) * 1
