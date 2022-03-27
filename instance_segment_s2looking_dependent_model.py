@@ -17,7 +17,9 @@ from utils.hungarian import *
 
 
 def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
-         cm_weights=[0.5, 0.5]):
+         cm_weights=None):
+    if cm_weights is None:
+        cm_weights = [0.3, 0.7]
     assert (0 <= mode < 3)
     assert os.path.isfile(trained_path)
 
