@@ -76,8 +76,11 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
 
-    valid_acc = metrics.MetricTracker()
-    valid_loss = metrics.MetricTracker()
+    cd_branch_acc = metrics.MetricTracker()
+    hungarian_branch_acc = metrics.MetricTracker()
+    final_acc = metrics.MetricTracker()
+
+    criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
 
     loader = tqdm(dataloader, desc="Evaluating")
 
@@ -87,20 +90,28 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
         for (idx, data) in enumerate(loader):
             cd_i1 = data['x'].cuda()
             cd_i2 = data['y'].cuda()
+            cd_labels = data['mask'].cuda()
             outputs = model(cd_i1, cd_i2)
 
-            cm_prob = outputs['cm'].cpu().numpy()
-            x_prob = outputs['x'].cpu().numpy()
-            y_prob = outputs['y'].cpu().numpy()
+            cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
 
-            cm = (cm_prob >= threshold) * 1
-            x = (x_prob >= threshold) * 1
-            y = (y_prob >= threshold) * 1
+            cm_probs = outputs['cm'].cpu().numpy()
+            x_probs = outputs['x'].cpu().numpy()
+            y_probs = outputs['y'].cpu().numpy()
+
+            cm = (cm_probs >= threshold) * 1
+            x = (x_probs >= threshold) * 1
+            y = (y_probs >= threshold) * 1
+
+            hg_probs = []
+            final_probs = []
 
             for i in range(cm.shape[0]):
+                # Get file name
                 filename = dataset.files[idx * batch_size + i]
                 filename = os.path.basename(filename['image1'])[:-4]
 
+                # Colorize instance segmentation map and save
                 masks1 = save_mask_and_contour(
                     x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE,
                     os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
@@ -112,29 +123,42 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
                 masks1 = torch.from_numpy(masks1)
                 masks2 = torch.from_numpy(masks2)
+
                 # Hungarian algorithm
-                hungarian_cd_map = change_detection_map(masks1, masks2, 256, 256)
-                hungarian_cd_image = (hungarian_cd_map * 255).astype(np.uint8)
+                hg_map = change_detection_map(masks1, masks2, 256, 256)
+                hg_img = (hg_map * 255).astype(np.uint8)
 
                 mask_color_1 = convert_to_color_map(masks1)
                 mask_color_2 = convert_to_color_map(masks2)
-                plot_and_save(mask_color_1, mask_color_2, hungarian_cd_image,
+                plot_and_save(mask_color_1, mask_color_2, hg_img,
                               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
+                # Save CM from CD branch
                 cm_im = Image.fromarray((cm[i, 0, ...] * 255).astype(np.uint8), mode='P')
                 cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
-                # Calculate final map
-                cm_x_prob = np.multiply(x_prob[i, 0, ...], hungarian_cd_map)
-                cm_y_prob = np.multiply(y_prob[i, 0, ...], hungarian_cd_map)
+                # Calculate final CM
+                x_probs = np.multiply(x_probs[i, 0, ...], hg_map)
+                y_probs = np.multiply(y_probs[i, 0, ...], hg_map)
 
-                final_cm_map = np.maximum(cm_x_prob, cm_y_prob)
-                final_cm_map = final_cm_map * cm_weights[0] + cm_prob[i, 0, ...] * cm_weights[1]
-                final_cm_map = (final_cm_map >= threshold) * 255
-                final_cm_map = Image.fromarray(final_cm_map.astype(np.uint8), mode='P')
-                final_cm_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
+                hg_prob = np.maximum(x_probs, y_probs)
+                hg_probs.append(hg_prob)
 
-    print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
+                final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
+                final_probs.append(final_prob)
+
+                final_map = (final_prob >= threshold) * 255
+                final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
+                final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
+
+            hg_probs = np.array(hg_probs)
+            final_probs = np.array(final_probs)
+
+            hungarian_branch_acc.update(metrics.np_dice_coeff(hg_probs, cm_probs), hg_probs.shape[0])
+            final_acc.update(metrics.np_dice_coeff(final_probs, cm_probs), final_probs.shape[0])
+
+    print("CD Branch dice: {:.4f} Hg dice: {:.4f} Final dice: {:.4f}"
+          .format(cd_branch_acc.avg, hungarian_branch_acc.avg, final_acc.avg))
 
 
 if __name__ == '__main__':
