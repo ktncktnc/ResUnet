@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 
 
@@ -75,3 +76,15 @@ def dice_coeff(input, target):
     loss = (2.0 * intersection + smooth) / (pred.sum(1) + truth.sum(1) + smooth)
 
     return loss.mean().item()
+
+def np_dice_coeff(input, target):
+    num_in_target = input.shape[0]
+    smooth = 1.0
+
+    pred = np.reshape(input, (num_in_target, -1))
+    truth = np.reshape(target, (num_in_target, -1))
+
+    intersection = np.multiply(pred, truth).sum(1)
+    loss = (2.0 * intersection + smooth)/(pred.sum(1) + truth.sum(1) + smooth)
+
+    return loss.mean()
