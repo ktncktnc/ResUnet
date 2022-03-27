@@ -146,7 +146,8 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 hg_prob = np.maximum(cm_x_probs, cm_y_probs)
                 hg_probs.append(hg_prob)
 
-                final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
+                # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
+                final_prob = np.maximum(hg_prob, cm_probs[i, 0, ...])
                 final_probs.append(final_prob)
 
                 final_map = (final_prob >= threshold) * 255
