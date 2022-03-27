@@ -79,8 +79,6 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     valid_acc = metrics.MetricTracker()
     valid_loss = metrics.MetricTracker()
 
-    criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
-
     loader = tqdm(dataloader, desc="Evaluating")
 
     NUCLEI_PALETTE = ImagePalette.random()
@@ -105,11 +103,11 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
                 masks1 = save_mask_and_contour(
                     x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE,
-                    os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))\
+                    os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
                     .astype(int)
                 masks2 = save_mask_and_contour(
                     y[i, 0, ...], y[i, 1, ...], NUCLEI_PALETTE,
-                    os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename))).\
+                    os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
                     astype(int)
 
                 masks1 = torch.from_numpy(masks1)
@@ -124,7 +122,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                 cm_im = Image.fromarray((cm[i, 0, ...] * 255).astype(np.uint8), mode='P')
-                cm_im.save(os.path.join(cd_save_path, "{filename}.png".format(filename=filename)))
+                cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
                 # Calculate final map
                 cm_x_prob = np.multiply(x_prob[i, 0, ...], hungarian_cd_map)
@@ -134,7 +132,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 final_cm_map = final_cm_map * cm_weights[0] + cm_prob[i, 0, ...] * cm_weights[1]
                 final_cm_map = (final_cm_map >= threshold) * 255
                 final_cm_map = Image.fromarray(final_cm_map.astype(np.uint8), mode='P')
-                final_cm_map.save(os.path.join(final_cd_path, "{filename}.png".format(filename=filename)))
+                final_cm_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
 
     print("Validation Loss: {:.4f} Acc: {:.4f}".format(valid_loss.avg, valid_acc.avg))
 
