@@ -138,10 +138,10 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
                 # Calculate final CM
-                x_probs = np.multiply(x_probs[i, 0, ...], hg_map)
-                y_probs = np.multiply(y_probs[i, 0, ...], hg_map)
+                cm_x_probs = np.multiply(x_probs[i, 0, ...], hg_map)
+                cm_y_probs = np.multiply(y_probs[i, 0, ...], hg_map)
 
-                hg_prob = np.maximum(x_probs, y_probs)
+                hg_prob = np.maximum(cm_x_probs, cm_y_probs)
                 hg_probs.append(hg_prob)
 
                 final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
