@@ -128,11 +128,9 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
                 # Calculate final map
                 cm_x_prob = np.multiply(x_prob[i, 0, ...], hungarian_cd_map)
-                print(cm_x_prob)
                 cm_y_prob = np.multiply(y_prob[i, 0, ...], hungarian_cd_map)
-                print(cm_y_prob)
 
-                final_cm_map = np.max(cm_x_prob, cm_y_prob)
+                final_cm_map = np.maximum(cm_x_prob, cm_y_prob)
                 final_cm_map = final_cm_map * cm_weights[0] + cm_prob[i, 0, ...] * cm_weights[1]
                 final_cm_map = (final_cm_map >= threshold) * 255
                 final_cm_map = Image.fromarray(final_cm_map.astype(np.uint8), mode='P')
