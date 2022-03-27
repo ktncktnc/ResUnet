@@ -103,14 +103,14 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
                 filename = dataset.files[idx * batch_size + i]
                 filename = os.path.basename(filename['image1'])[:-4]
 
-                masks1 = save_mask_and_contour(x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE, os.path.join(img1_save_path,
-                                                                                                        "is_{filename}.png".format(
-                                                                                                            filename=filename))).astype(
-                    int)
-                masks2 = save_mask_and_contour(y[i, 0, ...], y[i, 1, ...], NUCLEI_PALETTE, os.path.join(img2_save_path,
-                                                                                                        "is_{filename}.png".format(
-                                                                                                            filename=filename))).astype(
-                    int)
+                masks1 = save_mask_and_contour(
+                    x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE,
+                    os.path.join(img1_save_path, "is_{filename}.png".format(filename=filename)))\
+                    .astype(int)
+                masks2 = save_mask_and_contour(
+                    y[i, 0, ...], y[i, 1, ...], NUCLEI_PALETTE,
+                    os.path.join(img2_save_path, "is_{filename}.png".format(filename=filename))).\
+                    astype(int)
 
                 masks1 = torch.from_numpy(masks1)
                 masks2 = torch.from_numpy(masks2)
@@ -128,7 +128,9 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
                 # Calculate final map
                 cm_x_prob = np.multiply(x_prob[i, 0, ...], hungarian_cd_map)
+                print(cm_x_prob)
                 cm_y_prob = np.multiply(y_prob[i, 0, ...], hungarian_cd_map)
+                print(cm_y_prob)
 
                 final_cm_map = np.max(cm_x_prob, cm_y_prob)
                 final_cm_map = final_cm_map * cm_weights[0] + cm_prob[i, 0, ...] * cm_weights[1]
