@@ -3,10 +3,98 @@ import warnings
 warnings.simplefilter("ignore", UserWarning)
 
 from skimage import transform
-from torchvision import transforms
-
+import random
+from albumentations.core.transforms_interface import DualTransform
+import albumentations.augmentations.crops.functional as F
 import numpy as np
 import torch
+
+
+class RandomCropSaveSegmentMask(DualTransform):
+    """Crop a random part of the input.
+    Args:
+        height (int): height of the crop.
+        width (int): width of the crop.
+        p (float): probability of applying the transform. Default: 1.
+    Targets:
+        image, mask, bboxes, keypoints
+    Image types:
+        uint8, float32
+    """
+
+    def __init__(self, height, width, always_apply=False, p=1.0, stride=256, mask_threshold=0.3):
+        super().__init__(always_apply, p)
+        self.height = height
+        self.width = width
+        self.stride = stride
+        self.mask_threshold=0.3
+        self.patches = None
+        self.patch = None
+
+    def apply(self, img, h_start=0, w_start=0, **params):
+        if self.patches is None:
+            self.patches = self.get_random_patches(img.shape[0], img.shape[1])
+
+        return img[self.patch['y1']:self.patch['y2'], self.patch['x1']:self.patch['x2']]
+
+    def get_params(self):
+        return {"h_start": random.random(), "w_start": random.random()}
+
+    def apply_to_bbox(self, bbox, **params):
+        return F.bbox_random_crop(bbox, self.height, self.width, **params)
+
+    def apply_to_keypoint(self, keypoint, **params):
+        return F.keypoint_random_crop(keypoint, self.height, self.width, **params)
+
+    def get_transform_init_args_names(self):
+        return ("height", "width")
+
+    def get_patches(self, img_height, img_width):
+        patches = []
+        x1 = y1 = 0
+        y2 = self.height
+        x2 = self.width
+
+        while y1 < img_height or x1 < img_width:
+            patch = {
+                "x1": x1,
+                "y1": y1,
+                "x2": x2,
+                "y2": y2
+            }
+            patches.append(patch)
+
+            if x2 < img_width:
+                x2 = min(img_width, x2 + self.stride)
+                x1 = x2 - self.stride
+            else:
+                y2 = min(img_height, y2 + self.stride)
+                y1 = y2 - self.strie
+                x1 = 0
+                x2 = self.width
+
+        random.shuffle(patches)
+        return patches
+
+    def get_best_patch(self, mask):
+        if self.patches is None:
+            self.patches = self.get_patches(mask.shape[0], mask.shape[1])
+
+        total_pixel = np.sum(mask)
+        max_n_pixel = 0
+        max_patch = None
+        self.patch = None
+        for patch in self.patches:
+            n_pixel = np.sum(mask[patch['y1']:patch['y2'], patch['x1']:patch['x2']])
+            if n_pixel/total_pixel >= self.mask_threshold:
+                self.patch = patch
+
+                if n_pixel > max_n_pixel:
+                    max_n_pixel = n_pixel
+                    max_patch = patch
+
+        if self.patch is None:
+            self.patch = max_patch
 
 
 class RescaleTarget(object):
