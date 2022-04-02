@@ -8,7 +8,6 @@ warnings.simplefilter("ignore", UserWarning)
 from skimage import transform
 import random
 from albumentations.core.transforms_interface import DualTransform
-import albumentations.augmentations.crops.functional as F
 import numpy as np
 
 
@@ -41,12 +40,6 @@ class RandomCropSaveSegmentMask(DualTransform):
 
     def get_params(self):
         return {"h_start": random.random(), "w_start": random.random()}
-
-    def apply_to_bbox(self, bbox, **params):
-        return F.bbox_random_crop(bbox, self.height, self.width, **params)
-
-    def apply_to_keypoint(self, keypoint, **params):
-        return F.keypoint_random_crop(keypoint, self.height, self.width, **params)
 
     def get_patches(self, img_height, img_width):
         patches = []
