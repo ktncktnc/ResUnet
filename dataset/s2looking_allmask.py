@@ -2,6 +2,7 @@ from glob import glob
 from typing import Dict
 
 import albumentations as A
+from utils.augmentation import *
 import numpy as np
 import os
 import torch
@@ -27,25 +28,44 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             self,
             root: str = ".data/s2looking",
             split: str = "train",
-            transform: A.Compose = A.Compose([
-                A.Resize(256, 256),
-                A.RandomRotate90(),
-                A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
-                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-                ToTensorV2()
-            ],
-                additional_targets={
-                    'image0': 'image',
-                    'mask1': 'mask',
-                    'mask2': 'mask',
-                    'border_mask1': 'mask',
-                    'border_mask2': 'mask'
-                }
-            ),
+            augment_transform=None
     ):
         # assert split in self.splits
         self.root = root
-        self.transform = transform
+        if augment_transform is None:
+            additional_targets = {
+                'image0': 'image',
+                'mask1': 'mask',
+                'mask2': 'mask',
+                'border_mask1': 'mask',
+                'border_mask2': 'mask'
+            }
+            if split == "train":
+                self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=0.35)
+                augment_transform = A.Compose = A.Compose([
+                    A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
+                    self.random_crop,
+                    A.RandomRotate90(),
+                    A.RandomGamma(),
+                    A.RGBShift(p=0.2),
+                    A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
+                    A.Resize(256, 256),
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                    ToTensorV2()
+                ],
+                    additional_targets=additional_targets
+                )
+            else:
+                self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=1.0)
+                augment_transform = A.Compose = A.Compose([
+                    self.random_crop,
+                    A.Resize(256, 256),
+                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                    ToTensorV2()
+                ],
+                    additional_targets=additional_targets
+                )
+        self.transform = augment_transform
         self.files, self.image_names = self.load_files(root, split)
 
     @staticmethod
@@ -77,7 +97,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         image1 = np.array(Image.open(files["image1"]))
         image2 = np.array(Image.open(files["image2"]))
 
-        mask = np.array(Image.open(files["mask"]))/255.0
+        mask = np.array(Image.open(files["mask"])) / 255.0
         mask = np.expand_dims(mask, axis=2)
 
         mask1 = np.array(Image.open(files["mask1"]))[..., 2]
@@ -96,6 +116,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             'border_mask2': mask2[1, ...]
         }
 
+        self.random_crop.get_best_patch(mask)
         transformed = self.transform(**sample)
 
         image1 = transformed['image']

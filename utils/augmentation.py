@@ -1,4 +1,7 @@
+import math
 import warnings
+import cv2
+from typing import Dict, Any
 
 warnings.simplefilter("ignore", UserWarning)
 
@@ -7,7 +10,6 @@ import random
 from albumentations.core.transforms_interface import DualTransform
 import albumentations.augmentations.crops.functional as F
 import numpy as np
-import torch
 
 
 class RandomCropSaveSegmentMask(DualTransform):
@@ -22,20 +24,20 @@ class RandomCropSaveSegmentMask(DualTransform):
         uint8, float32
     """
 
+    def get_params_dependent_on_targets(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
     def __init__(self, height, width, always_apply=False, p=1.0, stride=256, mask_threshold=0.3):
         super().__init__(always_apply, p)
         self.height = height
         self.width = width
         self.stride = stride
-        self.mask_threshold=0.3
+        self.mask_threshold = mask_threshold
         self.patches = None
         self.patch = None
 
     def apply(self, img, h_start=0, w_start=0, **params):
-        if self.patches is None:
-            self.patches = self.get_random_patches(img.shape[0], img.shape[1])
-
-        return img[self.patch['y1']:self.patch['y2'], self.patch['x1']:self.patch['x2']]
+        return img[self.patch['x1']:self.patch['x2'], self.patch['y1']:self.patch['y2']]
 
     def get_params(self):
         return {"h_start": random.random(), "w_start": random.random()}
@@ -46,32 +48,32 @@ class RandomCropSaveSegmentMask(DualTransform):
     def apply_to_keypoint(self, keypoint, **params):
         return F.keypoint_random_crop(keypoint, self.height, self.width, **params)
 
-    def get_transform_init_args_names(self):
-        return ("height", "width")
-
     def get_patches(self, img_height, img_width):
         patches = []
         x1 = y1 = 0
         y2 = self.height
         x2 = self.width
+        i = 0
 
-        while y1 < img_height or x1 < img_width:
-            patch = {
-                "x1": x1,
-                "y1": y1,
-                "x2": x2,
-                "y2": y2
-            }
-            patches.append(patch)
+        n_row = math.ceil((img_height - self.height)/self.stride)
+        n_col = math.ceil((img_width - self.width)/self.stride)
 
-            if x2 < img_width:
-                x2 = min(img_width, x2 + self.stride)
-                x1 = x2 - self.stride
-            else:
-                y2 = min(img_height, y2 + self.stride)
-                y1 = y2 - self.strie
-                x1 = 0
-                x2 = self.width
+        for row in range(n_row + 1):
+            x2 = min(img_height, self.height + row * self.stride)
+
+            for col in range(n_col + 1):
+                y2 = min(img_width, self.width + col*self.stride)
+
+                x1 = x2 - self.height
+                y1 = y2 - self.width
+
+                patch = {
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2
+                }
+                patches.append(patch)
 
         random.shuffle(patches)
         return patches
@@ -81,17 +83,18 @@ class RandomCropSaveSegmentMask(DualTransform):
             self.patches = self.get_patches(mask.shape[0], mask.shape[1])
 
         total_pixel = np.sum(mask)
-        max_n_pixel = 0
+        max_n_pixel = 0.0
         max_patch = None
         self.patch = None
         for patch in self.patches:
-            n_pixel = np.sum(mask[patch['y1']:patch['y2'], patch['x1']:patch['x2']])
-            if n_pixel/total_pixel >= self.mask_threshold:
+            n_pixel = np.sum(mask[patch['x1']:patch['x2'], patch['y1']:patch['y2']])
+            if n_pixel / total_pixel >= self.mask_threshold:
                 self.patch = patch
+                break
 
-                if n_pixel > max_n_pixel:
-                    max_n_pixel = n_pixel
-                    max_patch = patch
+            if n_pixel > max_n_pixel:
+                max_n_pixel = n_pixel
+                max_patch = patch
 
         if self.patch is None:
             self.patch = max_patch
@@ -194,7 +197,7 @@ class RandomCropTarget(object):
         top = np.random.randint(0, h - new_h)
         left = np.random.randint(0, w - new_w)
 
-        sat_img = sat_img[top : top + new_h, left : left + new_w]
-        map_img = map_img[top : top + new_h, left : left + new_w]
+        sat_img = sat_img[top: top + new_h, left: left + new_w]
+        map_img = map_img[top: top + new_h, left: left + new_w]
 
         return {"sat_img": sat_img, "map_img": map_img}
