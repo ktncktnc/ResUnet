@@ -34,7 +34,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         self.root = root
         self.random_crop = None
         if augment_transform is None:
-            additional_targets = {
+            targets = {
                 'image0': 'image',
                 'mask1': 'mask',
                 'mask2': 'mask',
@@ -54,7 +54,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                     ToTensorV2()
                 ],
-                    additional_targets=additional_targets
+                    additional_targets=targets
                 )
             else:
                 self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=1.0)
@@ -64,7 +64,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                     ToTensorV2()
                 ],
-                    additional_targets=additional_targets
+                    additional_targets=targets
                 )
         self.transform = augment_transform
         self.files, self.image_names = self.load_files(root, split)
