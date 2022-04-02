@@ -90,7 +90,10 @@ class RandomCropSaveSegmentMask(DualTransform):
                 max_patch = patch
 
         if self.patch is None:
-            self.patch = max_patch
+            if max_patch is None:
+                self.patch = self.patches[0]
+            else:
+                self.patch = max_patch
 
 
 class RescaleTarget(object):
