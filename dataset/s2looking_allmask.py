@@ -43,7 +43,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             }
             if split == "train":
                 self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=0.35)
-                augment_transform = A.Compose = A.Compose([
+                augment_transform = A.Compose([
                     A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
                     self.random_crop,
                     A.RandomRotate90(),
@@ -64,7 +64,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                 )
             else:
                 self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=1.0)
-                augment_transform = A.Compose = A.Compose([
+                augment_transform = A.Compose([
                     self.random_crop,
                     A.Resize(256, 256),
                     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
