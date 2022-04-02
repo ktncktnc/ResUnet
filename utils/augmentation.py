@@ -80,6 +80,9 @@ class RandomCropSaveSegmentMask(DualTransform):
         max_patch = None
         self.patch = None
         for patch in self.patches:
+            if total_pixel < 1:
+                break
+
             n_pixel = np.sum(mask[patch['x1']:patch['x2'], patch['y1']:patch['y2']])
             if n_pixel / total_pixel >= self.mask_threshold:
                 self.patch = patch
