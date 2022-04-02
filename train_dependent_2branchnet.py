@@ -63,43 +63,10 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
         else:
             print("=> no checkpoint found at '{}'".format(resume))
 
-    # transform
-    train_transform = albums.Compose([
-        albums.Resize(256, 256),
-        albums.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
-        albums.RandomGamma(),
-        albums.RGBShift(p=0.2),
-        albums.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
-        albums.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2()
-    ],
-        additional_targets={
-            'image0': 'image',
-            'mask1': 'mask',
-            'mask2': 'mask',
-            'border_mask1': 'mask',
-            'border_mask2': 'mask'
-        }
-    )
-
-    test_transform = albums.Compose([
-        albums.Resize(256, 256),
-        albums.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2()
-    ],
-        additional_targets={
-            'image0': 'image',
-            'mask1': 'mask',
-            'mask2': 'mask',
-            'border_mask1': 'mask',
-            'border_mask2': 'mask'
-        }
-    )
-
     # get data
     # cd
-    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train", train_transform)
-    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "val", test_transform)
+    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train")
+    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "val")
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
