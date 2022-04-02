@@ -33,6 +33,8 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         # assert split in self.splits
         self.root = root
         self.random_crop = None
+        print("augment_transform")
+        print(augment_transform)
         if augment_transform is None:
             additional_targets = {
                 'image0': 'image',
