@@ -54,7 +54,13 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                     ToTensorV2()
                 ],
-                    additional_targets=targets
+                    additional_targets={
+                        'image0': 'image',
+                        'mask1': 'mask',
+                        'mask2': 'mask',
+                        'border_mask1': 'mask',
+                        'border_mask2': 'mask'
+                    }
                 )
             else:
                 self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=1.0)
@@ -64,7 +70,13 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                     ToTensorV2()
                 ],
-                    additional_targets=targets
+                    additional_targets={
+                        'image0': 'image',
+                        'mask1': 'mask',
+                        'mask2': 'mask',
+                        'border_mask1': 'mask',
+                        'border_mask2': 'mask'
+                    }
                 )
         self.transform = augment_transform
         self.files, self.image_names = self.load_files(root, split)
