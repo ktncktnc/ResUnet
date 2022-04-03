@@ -10,13 +10,14 @@ from utils.logger import MyWriter
 import torch
 import argparse
 import os
-import albumentations as albums
-from albumentations.pytorch import ToTensorV2
+import ssl
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
 
 def main(hpconfig, num_epochs, resume, name, training_weight=None):
+    ssl._create_default_https_context = ssl._create_unverified_context
+
     checkpoint_dir = "{}/{}".format(hpconfig.checkpoints, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
