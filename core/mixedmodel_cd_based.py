@@ -212,8 +212,9 @@ class DependentResUnetMultiDecoder(nn.Module):
         output = self.siamese_forward(x, y)
         cm = output['cm']
 
-        x = self.segment_forward(output['x'], output['pools_x'], cm)
-        y = self.segment_forward(output['y'], output['pools_y'], cm)
+        detached_cm = cm.detach().clone()
+        x = self.segment_forward(output['x'], output['pools_x'], detached_cm)
+        y = self.segment_forward(output['y'], output['pools_y'], detached_cm)
 
         return {
             "cm": cm,
