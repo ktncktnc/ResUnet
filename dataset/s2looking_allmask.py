@@ -28,11 +28,13 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             self,
             root: str = ".data/s2looking",
             split: str = "train",
-            augment_transform=None
+            augment_transform=None,
+            divide=2
     ):
         # assert split in self.splits
         self.root = root
         self.random_crop = None
+        self.divide = divide
         if augment_transform is None:
             targets = {
                 'image0': 'image',
@@ -82,7 +84,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         self.files, self.image_names = self.load_files(root, split)
 
     @staticmethod
-    def load_files(root: str, split: str):
+    def load_files(root: str, split: str, divide):
         files = []
         images = glob(os.path.join(root, split, "Image1", "*.png"))
         images = sorted([os.path.basename(image) for image in images])
@@ -93,7 +95,10 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             mask1 = os.path.join(root, split, "label1", image)
             mask2 = os.path.join(root, split, "label2", image)
 
-            files.append(dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2))
+            files += [
+                dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2, divide=i)
+                for i in range(divide * divide)
+            ]
 
         return files, images
 
