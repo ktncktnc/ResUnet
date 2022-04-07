@@ -87,8 +87,8 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     full_cm = np.zeros((img_height, img_width))
     full_x = np.zeros((2, img_height, img_width))
     full_y = np.zeros((2, img_height, img_width))
-    full_x_probs = np.zeros((img_height, img_width), dtype=np.float)
-    full_y_probs = np.zeros((img_height, img_width), dtype=np.float)
+    full_x_probs = np.zeros((img_height, img_width), dtype=np.float64)
+    full_y_probs = np.zeros((img_height, img_width), dtype=np.float64)
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
@@ -115,6 +115,10 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 filename = dataset.files[idx * batch_size + i]
                 divide = filename['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
+                print(x1)
+                print(x2)
+                print(y1)
+                print(y2)
                 filename = os.path.basename(filename['image1'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
