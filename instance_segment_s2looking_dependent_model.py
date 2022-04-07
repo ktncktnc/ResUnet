@@ -16,7 +16,7 @@ from utils.images import *
 from utils.hungarian import *
 
 
-def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
+def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
          cm_weights=None):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
@@ -67,7 +67,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, "val", transform)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
@@ -80,7 +80,15 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
     loader = tqdm(dataloader, desc="Evaluating")
 
-    NUCLEI_PALETTE = ImagePalette.random()
+    nuclei_palette = ImagePalette.random()
+
+    img_height, img_width = dataset.get_full_resized_shape()
+
+    full_cm = np.zeros((img_height, img_width))
+    full_x = np.zeros((2, img_height, img_width))
+    full_y = np.zeros((2, img_height, img_width))
+    full_x_probs = np.zeros((img_height, img_width), dtype=np.float)
+    full_y_probs = np.zeros((img_height, img_width), dtype=np.float)
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
@@ -105,48 +113,58 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
             for i in range(cm.shape[0]):
                 # Get file name
                 filename = dataset.files[idx * batch_size + i]
-                filename = os.path.basename(filename['image1'])[:-4] + str(filename['divide'])
+                divide = filename['divide']
+                x1, x2, y1, y2 = dataset.get_resized_coord(divide)
+                filename = os.path.basename(filename['image1'])[:-4]
 
-                # Colorize instance segmentation map and save
-                masks1 = save_mask_and_contour(
-                    x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE,
-                    os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
-                    .astype(int)
-                masks2 = save_mask_and_contour(
-                    y[i, 0, ...], y[i, 1, ...], NUCLEI_PALETTE,
-                    os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
-                    astype(int)
+                full_x[:, x1:x2, y1:y2] = x[i, :, ...]
+                full_y[:, x1:x2, y1:y2] = y[i, :, ...]
+                full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
+                full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
+                full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
 
-                masks1 = torch.from_numpy(masks1)
-                masks2 = torch.from_numpy(masks2)
+                if divide >= dataset.divide - 1:
+                    # Colorize instance segmentation map and save
+                    masks1 = save_mask_and_contour(
+                        full_x[i, 0, ...], full_x[i, 1, ...], nuclei_palette,
+                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
+                        .astype(int)
 
-                # Hungarian algorithm
-                hg_map = change_detection_map(masks1, masks2, 256, 256)
-                hg_img = (hg_map * 255).astype(np.uint8)
+                    masks2 = save_mask_and_contour(
+                        full_y[i, 0, ...], full_y[i, 1, ...], nuclei_palette,
+                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
+                        astype(int)
 
-                mask_color_1 = convert_to_color_map(masks1)
-                mask_color_2 = convert_to_color_map(masks2)
-                plot_and_save(mask_color_1, mask_color_2, hg_img,
-                              os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
+                    masks1 = torch.from_numpy(masks1)
+                    masks2 = torch.from_numpy(masks2)
 
-                # Save CM from CD branch
-                cm_im = Image.fromarray((cm[i, 0, ...] * 255).astype(np.uint8), mode='P')
-                cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
+                    # Hungarian algorithm
+                    hg_map = change_detection_map(masks1, masks2, 256, 256)
+                    hg_img = (hg_map * 255).astype(np.uint8)
 
-                # Calculate final CM
-                cm_x_probs = np.multiply(x_probs[i, 0, ...], hg_map)
-                cm_y_probs = np.multiply(y_probs[i, 0, ...], hg_map)
+                    mask_color_1 = convert_to_color_map(masks1)
+                    mask_color_2 = convert_to_color_map(masks2)
+                    plot_and_save(mask_color_1, mask_color_2, hg_img,
+                                  os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                hg_prob = np.maximum(cm_x_probs, cm_y_probs)
-                hg_probs.append(hg_prob)
+                    # Save CM from CD branch
+                    cm_im = Image.fromarray((full_cm[i, 0, ...] * 255).astype(np.uint8), mode='P')
+                    cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
-                # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
-                final_prob = np.maximum(hg_prob, cm_probs[i, 0, ...])
-                final_probs.append(final_prob)
+                    # Calculate final CM
+                    cm_x_probs = np.multiply(full_x_probs, hg_map)
+                    cm_y_probs = np.multiply(full_x_probs, hg_map)
 
-                final_map = (final_prob >= threshold) * 255
-                final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
-                final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
+                    hg_prob = np.maximum(cm_x_probs, cm_y_probs)
+                    hg_probs.append(hg_prob)
+
+                    # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
+                    final_prob = np.maximum(hg_prob, cm_probs[i, 0, ...])
+                    final_probs.append(final_prob)
+
+                    final_map = (final_prob >= threshold) * 255
+                    final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
+                    final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
 
             hg_probs = np.array(hg_probs)
             final_probs = np.array(final_probs)
@@ -168,6 +186,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
     )
+    parser.add_argument("--split", default="val", type=str)
 
     args = parser.parse_args()
 
@@ -178,4 +197,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, args.pretrain, args.savepath, args.threshold, args.batchsize)
+    main(hp, int(args.mode), weights, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize)
