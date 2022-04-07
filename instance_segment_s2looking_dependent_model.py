@@ -137,6 +137,8 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
 
                     masks1 = torch.from_numpy(masks1)
                     masks2 = torch.from_numpy(masks2)
+                    print(masks1.shape)
+                    print(masks2.shape)
 
                     # Hungarian algorithm
                     hg_map = change_detection_map(masks1, masks2, img_height, img_width)
