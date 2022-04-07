@@ -107,19 +107,13 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         image1 = np.array(Image.open(files["image1"]))
         image2 = np.array(Image.open(files["image2"]))
 
-        height = image1.shape[0]
-        width = image1.shape[1]
+        height = int(image1.shape[0]/self.divide)
+        width = int(image1.shape[1]/self.divide)
 
         x1 = height*row
         x2 = height*(row + 1)
         y1 = width*col
         y2 = width*(col + 1)
-        print(files)
-        print(image1.shape)
-        print(x1)
-        print(x2)
-        print(y1)
-        print(y2)
 
         image1 = image1[x1:x2, y1:y2, ...]
         image2 = image2[x1:x2, y1:y2, ...]
