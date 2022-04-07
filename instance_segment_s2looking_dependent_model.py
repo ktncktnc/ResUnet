@@ -126,12 +126,12 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 if divide >= dataset.divide - 1:
                     # Colorize instance segmentation map and save
                     masks1 = save_mask_and_contour(
-                        full_x[i, 0, ...], full_x[i, 1, ...], nuclei_palette,
+                        full_x[0, ...], full_x[1, ...], nuclei_palette,
                         os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
                         .astype(int)
 
                     masks2 = save_mask_and_contour(
-                        full_y[i, 0, ...], full_y[i, 1, ...], nuclei_palette,
+                        full_y[0, ...], full_y[1, ...], nuclei_palette,
                         os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
                         astype(int)
 
@@ -148,12 +148,12 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                                   os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                     # Save CM from CD branch
-                    cm_im = Image.fromarray((full_cm[i, 0, ...] * 255).astype(np.uint8), mode='P')
+                    cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
                     cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
                     # Calculate final CM
                     cm_x_probs = np.multiply(full_x_probs, hg_map)
-                    cm_y_probs = np.multiply(full_x_probs, hg_map)
+                    cm_y_probs = np.multiply(full_y_probs, hg_map)
 
                     hg_prob = np.maximum(cm_x_probs, cm_y_probs)
                     hg_probs.append(hg_prob)
