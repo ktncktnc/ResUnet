@@ -114,6 +114,12 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         x2 = height*(row + 1)
         y1 = width*col
         y2 = width*(col + 1)
+        print(files)
+        print(image1.shape)
+        print(x1)
+        print(x2)
+        print(y1)
+        print(y2)
 
         image1 = image1[x1:x2, y1:y2, ...]
         image2 = image2[x1:x2, y1:y2, ...]
