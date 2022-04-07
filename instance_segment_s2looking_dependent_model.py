@@ -144,8 +144,8 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     hg_map = change_detection_map(masks1, masks2, img_height, img_width)
                     hg_img = (hg_map * 255).astype(np.uint8)
 
-                    mask_color_1 = convert_to_color_map(masks1)
-                    mask_color_2 = convert_to_color_map(masks2)
+                    mask_color_1 = convert_to_color_map(masks1, img_width, img_height)
+                    mask_color_2 = convert_to_color_map(masks2, img_width, img_height)
                     plot_and_save(mask_color_1, mask_color_2, hg_img,
                                   os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
