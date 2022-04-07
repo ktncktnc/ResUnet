@@ -53,11 +53,6 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
-    if save_sub_mask:
-        n_masks = mode + 1
-    else:
-        n_masks = 1
-
     transform = albums.Compose([
         albums.Resize(256, 256),
         albums.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
@@ -73,7 +68,6 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     )
 
     dataset = S2LookingAllMask(hp.cd_dset_dir, "val", transform)
-
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )

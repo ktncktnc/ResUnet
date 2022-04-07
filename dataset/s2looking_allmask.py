@@ -35,13 +35,6 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         self.root = root
         self.divide = divide
         if augment_transform is None:
-            targets = {
-                'image0': 'image',
-                'mask1': 'mask',
-                'mask2': 'mask',
-                'border_mask1': 'mask',
-                'border_mask2': 'mask'
-            }
             if split == "train":
                 augment_transform = A.Compose([
                     A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
@@ -63,7 +56,6 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                 )
             else:
                 augment_transform = A.Compose([
-                    self.random_crop,
                     A.Resize(256, 256),
                     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                     ToTensorV2()
@@ -115,7 +107,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         image1 = np.array(Image.open(files["image1"]))
         image2 = np.array(Image.open(files["image2"]))
 
-        height= image1.shape[0]
+        height = image1.shape[0]
         width = image1.shape[1]
 
         x1 = height*row
