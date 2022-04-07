@@ -83,6 +83,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     nuclei_palette = ImagePalette.random()
 
     img_height, img_width = dataset.get_full_resized_shape()
+    print(dataset.get_full_resized_shape())
 
     full_cm = np.zeros((img_height, img_width))
     full_x = np.zeros((2, img_height, img_width))
