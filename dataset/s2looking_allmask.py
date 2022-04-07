@@ -81,7 +81,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                     }
                 )
         self.transform = augment_transform
-        self.files, self.image_names = self.load_files(root, split)
+        self.files, self.image_names = self.load_files(root, split, self.divide)
 
     @staticmethod
     def load_files(root: str, split: str, divide):
@@ -112,16 +112,31 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         demolish_mask: (1, h, w)
         """
         files = self.files[idx]
+        idx = files['divide']
+        row = int(idx/self.divide)
+        col = idx - row*self.divide
+
         image1 = np.array(Image.open(files["image1"]))
         image2 = np.array(Image.open(files["image2"]))
 
-        mask = np.array(Image.open(files["mask"])) / 255.0
+        height= image1.shape[0]
+        width = image1.shape[1]
+
+        x1 = height*row
+        x2 = height*(row + 1)
+        y1 = width*col
+        y2 = width*(col + 1)
+
+        image1 = image1[x1:x2, y1:y2, ...]
+        image2 = image2[x1:x2, y1:y2, ...]
+
+        mask = (np.array(Image.open(files["mask"])) / 255.0)[x1:x2, y1:y2]
         mask = np.expand_dims(mask, axis=2)
 
-        mask1 = np.array(Image.open(files["mask1"]))[..., 2]
+        mask1 = np.array(Image.open(files["mask1"]))[x1:x2, y1:y2, 2]
         mask1 = create_multiclass_mask(mask1, False)
 
-        mask2 = np.array(Image.open(files["mask2"]))[..., 0]
+        mask2 = np.array(Image.open(files["mask2"]))[x1:x2, y1:y2, 0]
         mask2 = create_multiclass_mask(mask2, False)
 
         sample = {

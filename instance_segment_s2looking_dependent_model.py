@@ -111,7 +111,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
             for i in range(cm.shape[0]):
                 # Get file name
                 filename = dataset.files[idx * batch_size + i]
-                filename = os.path.basename(filename['image1'])[:-4]
+                filename = os.path.basename(filename['image1'])[:-4] + str(filename['divide'])
 
                 # Colorize instance segmentation map and save
                 masks1 = save_mask_and_contour(
