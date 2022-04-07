@@ -85,6 +85,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     img_height, img_width = dataset.get_full_resized_shape()
 
     full_cm = np.zeros((img_height, img_width))
+    full_label = np.zeros((img_height, img_width))
     full_x = np.zeros((2, img_height, img_width))
     full_y = np.zeros((2, img_height, img_width))
     full_x_probs = np.zeros((img_height, img_width), dtype=np.float64)
@@ -121,6 +122,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
                 full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
+                # full_label[x1:x2, y1:y2] =
                 full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
                 full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
                 full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
@@ -171,8 +173,8 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
             hg_probs = np.array(hg_probs)
             final_probs = np.array(final_probs)
 
-            hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
-            final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
+            #hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
+            #final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
 
     print("CD Branch dice: {:.4f} Hg dice: {:.4f} Final dice: {:.4f}"
           .format(cd_branch_acc.avg, hungarian_branch_acc.avg, final_acc.avg))
