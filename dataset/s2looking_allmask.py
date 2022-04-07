@@ -33,7 +33,6 @@ class S2LookingAllMask(torch.utils.data.Dataset):
     ):
         # assert split in self.splits
         self.root = root
-        self.random_crop = None
         self.divide = divide
         if augment_transform is None:
             targets = {
@@ -44,10 +43,8 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                 'border_mask2': 'mask'
             }
             if split == "train":
-                self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=0.35)
                 augment_transform = A.Compose([
                     A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
-                    self.random_crop,
                     A.RandomRotate90(),
                     A.RandomGamma(),
                     A.RGBShift(p=0.2),
@@ -65,7 +62,6 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                     }
                 )
             else:
-                self.random_crop = RandomCropSaveSegmentMask(512, 512, mask_threshold=1.0)
                 augment_transform = A.Compose([
                     self.random_crop,
                     A.Resize(256, 256),
@@ -149,7 +145,6 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             'border_mask2': mask2[1, ...]
         }
 
-        self.random_crop.get_best_patch(mask)
         transformed = self.transform(**sample)
 
         image1 = transformed['image']
