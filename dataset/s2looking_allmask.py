@@ -36,8 +36,12 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         self.root = root
         self.divide = divide
         self.resized_shape = resized_shape
+
         if augment_transform is None:
             self.transform = self.get_default_transform(split, self.resized_shape)
+        else:
+            self.transform = augment_transform
+
         self.files = None
         self.divide_width = self.divide_height = 0
         self.load_files(root, split, self.divide)
