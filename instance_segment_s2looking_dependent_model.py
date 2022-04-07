@@ -83,7 +83,6 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     nuclei_palette = ImagePalette.random()
 
     img_height, img_width = dataset.get_full_resized_shape()
-    print(dataset.get_full_resized_shape())
 
     full_cm = np.zeros((img_height, img_width))
     full_x = np.zeros((2, img_height, img_width))
@@ -116,10 +115,6 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 filename = dataset.files[idx * batch_size + i]
                 divide = filename['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
-                print(x1)
-                print(x2)
-                print(y1)
-                print(y2)
                 filename = os.path.basename(filename['image1'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
