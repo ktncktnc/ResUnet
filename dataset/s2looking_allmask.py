@@ -172,4 +172,4 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         return x1, x2, y1, y2
 
     def get_full_resized_shape(self):
-        return self.resized_shape[0]*int(self.divide/2), self.resized_shape[1]*int(self.divide/2)
+        return self.resized_shape[0]*self.divide, self.resized_shape[1]*self.divide
