@@ -89,6 +89,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     full_y = np.zeros((2, img_height, img_width))
     full_x_probs = np.zeros((img_height, img_width), dtype=np.float64)
     full_y_probs = np.zeros((img_height, img_width), dtype=np.float64)
+    full_cm_probs = np.zeros((img_height, img_width), dtype=np.float64)
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
@@ -122,6 +123,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
                 full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
                 full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
+                full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
 
                 if divide >= dataset.divide - 1:
                     # Colorize instance segmentation map and save
@@ -161,7 +163,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     hg_probs.append(hg_prob)
 
                     # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
-                    final_prob = np.maximum(hg_prob, cm_probs[i, 0, ...])
+                    final_prob = np.maximum(hg_prob, full_cm_probs)
                     final_probs.append(final_prob)
 
                     final_map = (final_prob >= threshold) * 255
