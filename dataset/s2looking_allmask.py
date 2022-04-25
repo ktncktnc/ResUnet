@@ -116,12 +116,19 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         files = self.files[idx]
         x1, x2, y1, y2 = self.get_coord(files['divide'])
 
-        image1 = np.array(Image.open(files["image1"]))[x1:x2, y1:y2, ...]
+        image1 = np.asarray(Image.open(files["image1"]))[x1:x2, y1:y2, ...]
         image2 = np.array(Image.open(files["image2"]))[x1:x2, y1:y2, ...]
 
         mask = (np.array(Image.open(files["mask"])) / 255.0)[x1:x2, y1:y2]
-        mask1 = create_multiclass_mask(np.array(Image.open(files["mask1"]))[x1:x2, y1:y2, 2], False)
-        mask2 = create_multiclass_mask(np.array(Image.open(files["mask2"]))[x1:x2, y1:y2, 0], False)
+
+        mask1 = np.asarray(Image.open(files["mask1"]))
+        mask2 = np.asarray(Image.open(files["mask2"]))
+        if mask1.shape[-1] > 1:
+            mask1 = mask1[x1:x2, y1:y2, 2]
+        if mask2.shape[-1] > 1:
+            mask2 = mask2[x1:x2, y1:y2, 0]
+        mask1 = create_multiclass_mask(mask1, False)
+        mask2 = create_multiclass_mask(mask2, False)
 
         sample = {
             'image': image1,
