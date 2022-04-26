@@ -123,9 +123,9 @@ class S2LookingAllMask(torch.utils.data.Dataset):
 
         mask1 = np.asarray(Image.open(files["mask1"]))
         mask2 = np.asarray(Image.open(files["mask2"]))
-        if mask1.shape[-1] > 1:
+        if len(mask1.shape) == 3 and mask1.shape[-1] > 1:
             mask1 = mask1[x1:x2, y1:y2, 2]
-        if mask2.shape[-1] > 1:
+        if len(mask2.shape) == 3 and mask2.shape[-1] > 1:
             mask2 = mask2[x1:x2, y1:y2, 0]
         mask1 = create_multiclass_mask(mask1, False)
         mask2 = create_multiclass_mask(mask2, False)
