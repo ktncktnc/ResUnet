@@ -1,0 +1,10 @@
+segment_dset_dir: "/kaggle/working/dataset"
+cd_dset_dir: "data/"
+log: "logs"
+logging_step: 100
+validation_interval: 500 # Save and valid have same interval
+checkpoints: "weights"
+batch_size: 8
+lr: 0.001
+IMAGE_SIZE: 1500
+CROP_SIZE: 224
