@@ -166,6 +166,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             step += 1
 
+        print("Test...")
         test_metrics = validation(
             cd_test_dataloader, model, criterion, device, training_weight
         )
