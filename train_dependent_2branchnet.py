@@ -67,12 +67,16 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     # get data
     # cd
     cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train")
-    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "val")
+    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val")
+    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test")
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
     )
     cd_val_dataloader = DataLoader(
+        cd_dataset_val, batch_size=hpconfig.batch_size, num_workers=2, shuffle=False
+    )
+    cd_test_dataloader = DataLoader(
         cd_dataset_test, batch_size=hpconfig.batch_size, num_workers=2, shuffle=False
     )
 
@@ -138,7 +142,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
                 valid_metrics = validation(
-                    cd_val_dataloader, model, criterion, writer, step, device, training_weight
+                    cd_val_dataloader, model, criterion, device, training_weight, True, writer, step
                 )
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
@@ -162,8 +166,13 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             step += 1
 
+        test_metrics = validation(
+            cd_test_dataloader, model, criterion, device, training_weight
+        )
+        print(test_metrics)
 
-def validation(cd_valid_loader, model, criterion, logger, step, device, training_weight):
+
+def validation(cd_valid_loader, model, criterion, device, training_weight, write_log=False, logger=None, step=None):
     print("\nValidation...")
     # logging accuracy and loss
     s_valid_acc = metrics.MetricTracker()
@@ -199,10 +208,11 @@ def validation(cd_valid_loader, model, criterion, logger, step, device, training
         s_valid_acc.update(metrics.dice_coeff(outputs['x'], cd_labels1), outputs['x'].size(0))
         s_valid_loss.update(s_loss.data.item(), outputs['x'].size(0))
 
-    logger.log_validation(s_valid_acc.avg, s_valid_loss.avg, step, "s_validation")
-    logger.log_validation(cd_valid_acc.avg, cd_valid_loss.avg, step, "cd_validation")
+    if write_log:
+        logger.log_validation(s_valid_acc.avg, s_valid_loss.avg, step, "s_validation")
+        logger.log_validation(cd_valid_acc.avg, cd_valid_loss.avg, step, "cd_validation")
 
-    print("Segment validation loss: {:.4f} Acc: {:.4f} CD validation loss: {:.4f} Acc: {:.4f}"
+        print("Segment validation loss: {:.4f} Acc: {:.4f} CD validation loss: {:.4f} Acc: {:.4f}"
           .format(s_valid_loss.avg, s_valid_acc.avg, cd_valid_loss.avg, cd_valid_acc.avg))
 
     model.train()
