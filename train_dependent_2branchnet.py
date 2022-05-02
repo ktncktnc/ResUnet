@@ -15,7 +15,7 @@ warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
 
-def main(hpconfig, num_epochs, resume, name, training_weight=None):
+def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     ssl._create_default_https_context = ssl._create_unverified_context
 
     checkpoint_dir = "{}/{}".format(hpconfig.checkpoints, name)
@@ -26,7 +26,7 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
 
     # Model
     resnet = models.resnet34(pretrained=True)
-    model = DependentResUnetMultiDecoder(resnet=resnet).cuda()
+    model = DependentResUnetMultiDecoder(resnet=resnet).to(device)
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
@@ -96,11 +96,11 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             # zero the parameter gradients
             optimizer.zero_grad()
 
-            cd_i1 = data['x'].cuda()
-            cd_i2 = data['y'].cuda()
-            cd_labels = data['mask'].cuda()
-            cd_labels1 = data['mask1'].cuda()
-            cd_labels2 = data['mask2'].cuda()
+            cd_i1 = data['x'].to(device)
+            cd_i2 = data['y'].to(device)
+            cd_labels = data['mask'].to(device)
+            cd_labels1 = data['mask1'].to(device)
+            cd_labels2 = data['mask2'].to(device)
 
             outputs = model(cd_i1, cd_i2)
 
@@ -138,7 +138,7 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
                 valid_metrics = validation(
-                    cd_val_dataloader, model, criterion, writer, step, training_weight
+                    cd_val_dataloader, model, criterion, writer, step, device, training_weight
                 )
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
@@ -163,7 +163,7 @@ def main(hpconfig, num_epochs, resume, name, training_weight=None):
             step += 1
 
 
-def validation(cd_valid_loader, model, criterion, logger, step, training_weight):
+def validation(cd_valid_loader, model, criterion, logger, step, device, training_weight):
     print("\nValidation...")
     # logging accuracy and loss
     s_valid_acc = metrics.MetricTracker()
@@ -177,11 +177,11 @@ def validation(cd_valid_loader, model, criterion, logger, step, training_weight)
     # Iterate over data.
     for data in cd_valid_loader:
         # get the inputs and wrap in Variable
-        i1 = data['x'].cuda()
-        i2 = data['y'].cuda()
-        cd_labels = data['mask'].cuda()
-        cd_labels1 = data['mask1'].cuda()
-        cd_labels2 = data['mask2'].cuda()
+        i1 = data['x'].to(device)
+        i2 = data['y'].to(device)
+        cd_labels = data['mask'].to(device)
+        cd_labels1 = data['mask1'].to(device)
+        cd_labels2 = data['mask2'].to(device)
 
         outputs = model(i1, i2)
         cd_loss = criterion(outputs['cm'], cd_labels)
@@ -236,6 +236,7 @@ if __name__ == '__main__':
     )
     parser.add_argument("--name", default="default", type=str, help="Experiment name")
     parser.add_argument("--mode", default=0, type=int, help="Training mode")
+    parser.add_argument("--device", default="cuda:0", type=str, help="Device ID")
     args = parser.parse_args()
 
     hp = HParam(args.config)
@@ -243,5 +244,6 @@ if __name__ == '__main__':
         hp_str = "".join(f.readlines())
 
     weights = [1.0, 0.1]
+    device = torch.device(args.device)
 
-    main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name, training_weight=weights)
+    main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name, device=device, training_weight=weights)
