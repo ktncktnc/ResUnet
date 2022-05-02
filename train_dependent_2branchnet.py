@@ -46,7 +46,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     if resume:
         if os.path.isfile(resume):
             print("=> loading checkpoint '{}'".format(resume))
-            checkpoint = torch.load(resume)
+            checkpoint = torch.load(resume, map_location=device)
 
             start_epoch = checkpoint["epoch"]
 
