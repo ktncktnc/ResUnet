@@ -107,19 +107,22 @@ def l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h): #(N, 4)
         result[i][j] = 1 - F.l1_loss(boxes_c1[i], boxes_c2[j], reduction='mean').item()
     return result
 
+
 def loss_between_2_masks(masks1, masks2, p_w, p_h, alpha=1, beta=6):
     boxes1, boxes2 = turn_2_masks_to_boxes(masks1, masks2)
     iou, union = box_iou(boxes1, boxes2)
     l1 = l1_loss_between_2_boxes(boxes1, boxes2, p_w, p_h)
     return -1 * alpha * torch.log10(iou) - beta * torch.log10(l1)  
 
+
 def hungarians_calc(loss_matrix, threshold = 0.577):
-    print(loss_matrix)
+    loss_matrix[np.isnan(loss_matrix)] = 100.0
     row_ind, col_ind = linear_sum_assignment(loss_matrix)
     for i in range(len(col_ind)):
       if loss_matrix[i][col_ind[i]] > threshold:
           col_ind[i] = -1
     return row_ind, col_ind
+
 
 def change_detection_map(masks1, masks2, w, h):
   CD_map = torch.zeros(w, h).int()
