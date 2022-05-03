@@ -49,7 +49,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
         os.makedirs(final_cd_path)
 
     model = DependentResUnetMultiDecoder().cuda()
-    checkpoint = torch.load(trained_path)
+    checkpoint = torch.load(trained_path, map_location=torch.device("cuda"))
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
