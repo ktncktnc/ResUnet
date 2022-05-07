@@ -112,7 +112,9 @@ class AlabamaDataset(torch.utils.data.Dataset):
         print(files)
         image = np.asarray(Image.open(files["image"]))[x1:x2, y1:y2, ...]
         mask = ((np.array(Image.open(files["mask"])) == 0)*255)[x1:x2, y1:y2]
+        print(mask.shape)
         mask = create_multiclass_mask(mask, False)
+        print(mask.shape)
 
         sample = {
             'image': image,
