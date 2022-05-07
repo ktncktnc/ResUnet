@@ -123,6 +123,9 @@ class AlabamaDataset(torch.utils.data.Dataset):
 
         image = transformed['image']
         mask = torch.zeros(2, mask.shape[0], mask.shape[1])
+        print("mask shape" + str(mask.shape))
+        print("transformed['mask'] shape " + str(transformed['mask'].shape))
+        print("transformed['border_mask'] shape " + str(transformed['border_mask'].shape))
         mask[0, ...] = transformed['mask']
         mask[1, ...] = transformed['border_mask']
 
