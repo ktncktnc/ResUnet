@@ -121,7 +121,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         # Working with input img
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel + 1),
+            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel),
             out_channels=int(self.encoded_channels[1] / 4),
             up_conv_in_channels=self.encoded_channels[1],
             up_conv_out_channels=int(self.encoded_channels[1] / 2)
@@ -197,12 +197,16 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def segment_forward(self, x, pools, cm):
+    def segment_forward(self, x, pools=None, cm=None):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
-        pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
+        assert (pools is None) == (cm is None)
+        if pools is None:
+            x, pools = self.encode(x)
+        else:
+            pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
         x = self.segment_bridge(x)
         a = self.segment_decode(x, pools)
         a = self.segment_decoder_out(a)
