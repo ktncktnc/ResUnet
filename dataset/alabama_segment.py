@@ -80,7 +80,7 @@ class AlabamaDataset(torch.utils.data.Dataset):
         image_files = open(os.path.join(root, split + ".txt"), "r")
         files = []
 
-        images = sorted([os.path.basename(image) for image in image_files.readlines()])
+        images = sorted([os.path.basename(image.rstrip()) for image in image_files.readlines()])
         for image in images:
             image = os.path.join(root, "image", image)
             mask = os.path.join(root, "mask", image)
