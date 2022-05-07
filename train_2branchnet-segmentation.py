@@ -166,7 +166,7 @@ def validation(cd_valid_loader, model, criterion, device, training_weight, write
         images = data['image'].to(device)
         labels = data['mask'].to(device)
 
-        outputs = model.segment_forward()
+        outputs = model.segment_forward(images)
 
         loss = 0.0
         for i in range(2):
