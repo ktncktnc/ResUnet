@@ -109,7 +109,7 @@ class AlabamaDataset(torch.utils.data.Dataset):
         """
         files = self.files[idx]
         x1, x2, y1, y2 = self.get_coord(files['divide'])
-
+        print(files)
         image = np.asarray(Image.open(files["image"]))[x1:x2, y1:y2, ...]
         mask = ((np.array(Image.open(files["mask"])) == 0)*255)[x1:x2, y1:y2]
         mask = create_multiclass_mask(mask, False)
