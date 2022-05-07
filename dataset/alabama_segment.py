@@ -115,6 +115,7 @@ class AlabamaDataset(torch.utils.data.Dataset):
         print(mask.shape)
         mask = create_multiclass_mask(mask, False)
         print(mask.shape)
+        print(image.shape)
 
         sample = {
             'image': image,
