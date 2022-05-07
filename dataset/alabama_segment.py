@@ -84,6 +84,8 @@ class AlabamaDataset(torch.utils.data.Dataset):
         for image in images:
             image = os.path.join(root, "image", image)
             mask = os.path.join(root, "mask", image)
+            print("image " + str(image))
+            print("mask " + str(mask))
 
             files += [
                 dict(image=image, mask=mask, divide=i)
