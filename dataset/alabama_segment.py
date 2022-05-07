@@ -84,11 +84,11 @@ class AlabamaDataset(torch.utils.data.Dataset):
         image_folder = os.path.join(root, "image")
         mask_folder = os.path.join(root, "mask")
         for image in images:
-            image = os.path.join(image_folder, image)
-            mask = os.path.join(mask_folder, image)
+            image_path = os.path.join(image_folder, image)
+            mask_path = os.path.join(mask_folder, image)
 
             files += [
-                dict(image=image, mask=mask, divide=i)
+                dict(image=image_path, mask=mask_path, divide=i)
                 for i in range(divide * divide)
             ]
 
@@ -108,14 +108,11 @@ class AlabamaDataset(torch.utils.data.Dataset):
         demolish_mask: (1, h, w)
         """
         files = self.files[idx]
-        print(files)
         x1, x2, y1, y2 = self.get_coord(files['divide'])
 
         image = np.asarray(Image.open(files["image"]))[x1:x2, y1:y2, ...]
-        mask = ((np.array(Image.open(files["mask"])) == 0)*1)[x1:x2, y1:y2]
-        print(mask.shape)
+        mask = ((np.array(Image.open(files["mask"])) == 0)*255)[x1:x2, y1:y2]
         mask = create_multiclass_mask(mask, False)
-        print(mask.shape)
 
         sample = {
             'image': image,
