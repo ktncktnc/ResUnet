@@ -106,6 +106,7 @@ class AlabamaDataset(torch.utils.data.Dataset):
         demolish_mask: (1, h, w)
         """
         files = self.files[idx]
+        print(files)
         x1, x2, y1, y2 = self.get_coord(files['divide'])
 
         image = np.asarray(Image.open(files["image"]))[x1:x2, y1:y2, ...]
