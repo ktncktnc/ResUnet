@@ -8,6 +8,7 @@ from core.parts import *
 class DependentResUnetMultiDecoder(nn.Module):
     def __init__(self, input_channel=3, segment_o_channel=2, cd_o_channel=1, resnet=None):
         super().__init__()
+        self.domain_classifier = None
         self.input_pool = None
         self.input_block = None
         self.encoder = None
@@ -78,18 +79,18 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         # Working with input blocks
         siamese_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=self.encoded_channels[1] + self.encoded_channels[0],
-            out_channels=self.encoded_channels[1],
+            in_channels=self.encoded_channels[0]/2 + self.encoded_channels[0]/4,
+            out_channels=self.encoded_channels[0]/2,
             up_conv_in_channels=self.encoded_channels[0],
-            up_conv_out_channels=self.encoded_channels[1])
+            up_conv_out_channels=self.encoded_channels[0]/2)
         )
 
         # Working with input img
         siamese_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel),
-            out_channels=int(self.encoded_channels[1] / 4),
-            up_conv_in_channels=self.encoded_channels[1],
-            up_conv_out_channels=int(self.encoded_channels[1] / 2)
+            in_channels=int(self.encoded_channels[0]/4 + self.input_channel),
+            out_channels=int(self.encoded_channels[0]/4),
+            up_conv_in_channels=self.encoded_channels[0]/2,
+            up_conv_out_channels=self.encoded_channels[0]/4
         ))
 
         self.siamese_decoder = nn.ModuleList(siamese_decoder)
@@ -100,7 +101,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.siamese_fusing_blocks = nn.ModuleList(siamese_fusing_blocks)
 
         self.siamese_decoder_out = nn.Sequential(
-            nn.Conv2d(int(self.encoded_channels[1] / 4), self.cd_o_channel, kernel_size=1, stride=1),
+            nn.Conv2d(int(self.encoded_channels[0]/4), self.cd_o_channel, kernel_size=1, stride=1),
             nn.Sigmoid()
         )
 
@@ -113,25 +114,29 @@ class DependentResUnetMultiDecoder(nn.Module):
                 UpBlockForUNetWithResNet50(self.encoded_channels[-i], self.encoded_channels[-(i + 1)]))
 
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=self.encoded_channels[1] + self.encoded_channels[0],
-            out_channels=self.encoded_channels[1],
+            in_channels=self.encoded_channels[0]/2 + self.encoded_channels[0]/4,
+            out_channels=self.encoded_channels[0]/2,
             up_conv_in_channels=self.encoded_channels[0],
-            up_conv_out_channels=self.encoded_channels[1])
+            up_conv_out_channels=self.encoded_channels[0]/2)
         )
 
         # Working with input img
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel + 1),
-            out_channels=int(self.encoded_channels[1] / 4),
-            up_conv_in_channels=self.encoded_channels[1],
-            up_conv_out_channels=int(self.encoded_channels[1] / 2)
+            in_channels=int(self.encoded_channels[0]/4 + self.input_channel),
+            out_channels=int(self.encoded_channels[0]/4),
+            up_conv_in_channels=self.encoded_channels[0]/2,
+            up_conv_out_channels=self.encoded_channels[0]/4
         ))
 
         self.segment_decoder = nn.ModuleList(segment_decoder)
         self.segment_decoder_out = nn.Sequential(
-            nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
+            nn.Conv2d(int(self.encoded_channels[0]/4), self.segment_o_channel, kernel_size=1, stride=1),
             nn.Sigmoid()
         )
+
+    def create_domain_classifier(self):
+        self.domain_classifier = nn.Sequential()
+        self.domain_classifier.add_module(nn.Linear(self.encoded_channels[-1], ))
 
     def input_process(self, x):
         x1 = self.input_block(x)
