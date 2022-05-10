@@ -114,18 +114,18 @@ class DependentResUnetMultiDecoder(nn.Module):
                 UpBlockForUNetWithResNet50(self.encoded_channels[-i], self.encoded_channels[-(i + 1)]))
 
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=self.encoded_channels[0]/2 + self.encoded_channels[0]/4,
-            out_channels=self.encoded_channels[0]/2,
-            up_conv_in_channels=self.encoded_channels[0],
-            up_conv_out_channels=self.encoded_channels[0]/2)
-        )
+            in_channels=int(self.encoded_channels[0]/2) + int(self.encoded_channels[0]/4),
+            out_channels=int(self.encoded_channels[0]/2),
+            up_conv_in_channels=int(self.encoded_channels[0]),
+            up_conv_out_channels=int(self.encoded_channels[0]/2)
+        ))
 
         # Working with input img
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/4 + self.input_channel),
+            in_channels=int(self.encoded_channels[0]/4) + self.input_channel,
             out_channels=int(self.encoded_channels[0]/4),
-            up_conv_in_channels=self.encoded_channels[0]/2,
-            up_conv_out_channels=self.encoded_channels[0]/4
+            up_conv_in_channels=int(self.encoded_channels[0]/2),
+            up_conv_out_channels=int(self.encoded_channels[0]/4)
         ))
 
         self.segment_decoder = nn.ModuleList(segment_decoder)
