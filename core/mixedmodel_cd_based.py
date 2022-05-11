@@ -134,9 +134,13 @@ class DependentResUnetMultiDecoder(nn.Module):
             nn.Sigmoid()
         )
 
-    def create_domain_classifier(self):
+    def create_domain_classifier(self, domain_n_classes=2):
         self.domain_classifier = nn.Sequential()
-        self.domain_classifier.add_module(nn.Linear(self.encoded_channels[-1], ))
+        self.domain_classifier.add_module(nn.Flatten())
+        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/8)))
+        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/8), int(self.encoded_channels[0]/16)))
+        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/16), int(self.encoded_channels[0]/32)))
+        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/32), int(domain_n_classes)))
 
     def input_process(self, x):
         x1 = self.input_block(x)
@@ -202,15 +206,26 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def segment_forward(self, x, pools, cm):
+    def domain_classification(self, x):
+        return self.domain_classifier(x)
+
+    def segment_forward(self, x, domain_classify=True, pools=None, cm=None):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
-        pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
+        assert (pools is None) == (cm is None)
+        if pools is None:
+            x, pools = self.encode(x)
+        else:
+            pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
         x = self.segment_bridge(x)
         a = self.segment_decode(x, pools)
         a = self.segment_decoder_out(a)
+
+        if domain_classify:
+            d = self.domain_classification(x)
+            return a, d
         return a
 
     def forward(self, x, y):
