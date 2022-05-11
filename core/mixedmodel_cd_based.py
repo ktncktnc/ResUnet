@@ -35,6 +35,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.create_encoder()
         self.create_siamese_decoder()
         self.create_segment_decoder()
+        self.create_domain_classifier()
 
     def create_input_block(self):
         # Input block
@@ -136,6 +137,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
     def create_domain_classifier(self, domain_n_classes=2):
         self.domain_classifier = nn.Sequential()
+        self.domain_classifier.add_module("d_avgpool", nn.AdaptiveAvgPool2d((1, 1)))
         self.domain_classifier.add_module("d_flat", nn.Flatten())
 
         self.domain_classifier.add_module("d_fc1", nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/8)))
