@@ -136,11 +136,22 @@ class DependentResUnetMultiDecoder(nn.Module):
 
     def create_domain_classifier(self, domain_n_classes=2):
         self.domain_classifier = nn.Sequential()
-        self.domain_classifier.add_module(nn.Flatten())
-        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/8)))
-        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/8), int(self.encoded_channels[0]/16)))
-        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/16), int(self.encoded_channels[0]/32)))
-        self.domain_classifier.add_module(nn.Linear(int(self.encoded_channels[0]/32), int(domain_n_classes)))
+        self.domain_classifier.add_module("d_flat", nn.Flatten())
+
+        self.domain_classifier.add_module("d_fc1", nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/8)))
+        self.domain_classifier.add_module("d_bn1", nn.BatchNorm1d(int(self.encoded_channels[0]/8)))
+        self.domain_classifier.add_module("d_relu1", nn.ReLU(True))
+
+        self.domain_classifier.add_module("d_fc2", nn.Linear(int(self.encoded_channels[0]/8), int(self.encoded_channels[0]/16)))
+        self.domain_classifier.add_module("d_bn2", nn.BatchNorm1d(int(self.encoded_channels[0]/16)))
+        self.domain_classifier.add_module("d_relu2", nn.ReLU(True))
+
+        self.domain_classifier.add_module("d_fc2", nn.Linear(int(self.encoded_channels[0]/16), int(self.encoded_channels[0]/32)))
+        self.domain_classifier.add_module("d_bn3", nn.BatchNorm1d(int(self.encoded_channels[0]/32)))
+        self.domain_classifier.add_module("d_relu3", nn.ReLU(True))
+
+        self.domain_classifier.add_module("d_out", nn.Linear(int(self.encoded_channels[0]/32), int(domain_n_classes)))
+        self.domain_classifier.add_module("d_softmax", nn.Softmax())
 
     def input_process(self, x):
         x1 = self.input_block(x)
