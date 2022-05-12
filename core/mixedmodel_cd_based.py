@@ -238,6 +238,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         a = self.segment_decode(x, pools)
         a = self.segment_decoder_out(a)
 
+        print(x.shape)
         if domain_classify:
             d = self.domain_classifier(x)
             return a, d
