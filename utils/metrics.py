@@ -109,10 +109,7 @@ def np_metrics(y_pred, y_true):
     return precision.mean(), recall.mean(), f1.mean(), dice.mean()
 
 def acc(y_pred, y_true):
-    num_in_target = input.size(0)
-
-    smooth = 1.0
-
+    num_in_target = y_pred.size(0)
     y_true = y_true.cpu().numpy()
     pred = torch.argmax(y_pred, 1).cpu().numpy()
     return np.sum(pred == y_true)/num_in_target
