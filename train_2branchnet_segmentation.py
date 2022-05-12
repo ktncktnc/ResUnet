@@ -82,10 +82,10 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     )
 
     s2l_train_dataloader = DataLoader(
-        alb_dataset_train, batch_size=int(hpconfig.batch_size/2), num_workers=2, shuffle=True
+        s2l_dataset_train, batch_size=int(hpconfig.batch_size/2), num_workers=2, shuffle=True
     )
     s2l_val_dataloader = DataLoader(
-        alb_dataset_val, batch_size=int(hpconfig.batch_size/2), num_workers=2, shuffle=False
+        s2l_dataset_val, batch_size=int(hpconfig.batch_size/2), num_workers=2, shuffle=False
     )
 
     loader_len = min(len(alb_dataset_train), len(s2l_train_dataloader))
