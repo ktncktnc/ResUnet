@@ -139,7 +139,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 segment_loss += training_weight[i] * _loss
 
             domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-            loss = segment_loss + domain_loss_weight*domain_loss
+            loss = segment_loss + domain_loss
 
             # cd_train_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
             # cd_train_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
@@ -229,7 +229,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
             segment_loss += training_weight[i] * _loss
 
         domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-        loss = segment_loss + domain_loss_weight*domain_loss
+        loss = segment_loss + domain_loss
 
         s_valid_acc.update(metrics.dice_coeff(s_outputs[:, 0, ...], s_groundtruth[:, 0, ...]), s_outputs.size(0))
         s_valid_loss.update(loss.data.item(), s_outputs.size(0))
