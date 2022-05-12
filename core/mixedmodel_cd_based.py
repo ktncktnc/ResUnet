@@ -3,6 +3,7 @@ import torch.nn as nn
 from torchvision import models
 from collections import OrderedDict
 from core.parts import *
+from core.modules import ReverseLayerF
 
 
 class DependentResUnetMultiDecoder(nn.Module):
@@ -220,12 +221,18 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def domain_classify(self, x):
-        x, pools = self.encode(x)
+    def domain_classify(self, x=None, encoded_feature=None, alpha=0.5):
+        assert (x is not None) or (encoded_feature is not None)
+        if encoded_feature is None:
+            x, pools = self.encode(x)
+        else:
+            x = encoded_feature
         x = self.segment_bridge(x)
+
+        x = ReverseLayerF.apply(x, alpha)
         return self.domain_classifier(x)
 
-    def segment_forward(self, x, domain_classify=True, pools=None, cm=None):
+    def segment_forward(self, x, domain_classify=True, alpha=None, pools=None, cm=None):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
@@ -240,7 +247,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         a = self.segment_decoder_out(a)
 
         if domain_classify:
-            d = self.domain_classifier(x)
+            d = self.domain_classify(encoded_feature=x, alpha=alpha)
             return a, d
         return a
 

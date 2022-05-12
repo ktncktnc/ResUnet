@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 from torchvision import models
 from tqdm import tqdm
 from utils.hparams import HParam
+import numpy as np
 from dataset.alabama_segment import AlabamaDataset
 from dataset.s2looking_allmask import S2LookingAllMask
 from utils import metrics
@@ -52,9 +53,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             checkpoint = torch.load(resume, map_location=device)
 
             start_epoch = checkpoint["epoch"]
-
             s_best_loss = checkpoint["s_best_loss"]
-
             step = checkpoint["step"]
 
             model.load_state_dict(checkpoint["state_dict"])
@@ -95,6 +94,9 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         alb_train_batch = iter(alb_train_dataloader)
         s2l_train_batch = iter(s2l_train_dataloader)
 
+        start_steps = epoch * loader_len
+        total_steps = num_epochs * loader_len
+
         print("Epoch {}/{}".format(epoch, num_epochs - 1))
         print("-" * 10)
 
@@ -113,6 +115,9 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # zero the parameter gradients
             optimizer.zero_grad()
 
+            p = float(i + start_steps) / total_steps
+            alpha = 2. / (1. + np.exp(-10 * p)) - 1
+
             s_data = next(alb_train_batch)
             s_images = s_data['image'].to(device)
             s_groundtruth = s_data['mask'].to(device)
@@ -123,9 +128,9 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             t_image2 = t_data['y'].to(device)
             t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long().to(device)
 
-            s_outputs, s_output_domains = model.segment_forward(s_images)
-            t_output_domains1 = model.domain_classify(t_image1)
-            t_output_domains2 = model.domain_classify(t_image2)
+            s_outputs, s_output_domains = model.segment_forward(s_images, alpha=alpha)
+            t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
+            t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
             t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
             # Segment loss
             segment_loss = 0.0
@@ -159,7 +164,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
                 valid_metrics = validation(
-                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight, domain_loss_weight, True, writer, step
+                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight, domain_loss_weight, alpha, True, writer, step
                 )
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
@@ -184,7 +189,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         domain_loss_weight = min(max_domain_loss_weight, domain_loss_weight*domain_loss_weight_decay)
 
 
-def validation(s_dataloader, t_dataloader, model, criterion, device, training_weight, domain_loss_weight, write_log=False, logger=None, step=None):
+def validation(s_dataloader, t_dataloader, model, criterion, device, training_weight, domain_loss_weight, alpha, write_log=False, logger=None, step=None):
     print("\nValidation...")
     # logging accuracy and loss
     s_valid_acc = metrics.MetricTracker()
@@ -213,9 +218,9 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         t_image2 = t_data['y'].to(device)
         t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long(())
 
-        s_outputs, s_output_domains = model.segment_forward(s_images)
-        t_output_domains1 = model.domain_classify(t_image1)
-        t_output_domains2 = model.domain_classify(t_image2)
+        s_outputs, s_output_domains = model.segment_forward(s_images, alpha=alpha)
+        t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
+        t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
         t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
 
         segment_loss = 0.0
