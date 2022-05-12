@@ -141,8 +141,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             s_train_acc.update(metrics.dice_coeff(s_outputs[:, 0, ...], s_groundtruth[:, 0, ...]), s_outputs.size(0))
             s_train_loss.update(loss.data.item(), s_outputs.size(0))
-            s_domain_acc.update(metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains),
-                                s_outputs.size(0) + t_output_domains.size(0))
+            s_domain_acc.update((metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains))/2.0, 1)
             # backward
             loss.backward()
             optimizer.step()
@@ -229,8 +228,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
 
         s_valid_acc.update(metrics.dice_coeff(s_outputs[:, 0, ...], s_groundtruth[:, 0, ...]), s_outputs.size(0))
         s_valid_loss.update(loss.data.item(), s_outputs.size(0))
-        s_domain_acc.update(metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains), s_outputs.size(0) + t_output_domains.size(0))
-
+        s_domain_acc.update((metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains)) / 2.0, 1)
     if write_log:
         logger.log_validation(s_valid_acc.avg, s_valid_loss.avg, step, "s_validation")
 
