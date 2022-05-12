@@ -153,7 +153,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.domain_classifier.add_module("d_relu3", nn.ReLU(True))
 
         self.domain_classifier.add_module("d_out", nn.Linear(int(self.encoded_channels[0]/32), int(domain_n_classes)))
-        self.domain_classifier.add_module("d_softmax", nn.Softmax())
+        self.domain_classifier.add_module("d_softmax", nn.LogSoftmax())
 
     def input_process(self, x):
         x1 = self.input_block(x)
@@ -219,7 +219,9 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def domain_classification(self, x):
+    def domain_classify(self, x):
+        x, pools = self.encode(x)
+        x = self.segment_bridge(x)
         return self.domain_classifier(x)
 
     def segment_forward(self, x, domain_classify=True, pools=None, cm=None):
@@ -237,7 +239,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         a = self.segment_decoder_out(a)
 
         if domain_classify:
-            d = self.domain_classification(x)
+            d = self.domain_classifier(x)
             return a, d
         return a
 
