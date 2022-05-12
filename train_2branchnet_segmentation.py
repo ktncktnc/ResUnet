@@ -106,9 +106,9 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         s_train_acc = metrics.MetricTracker()
         s_train_loss = metrics.MetricTracker()
 
-        loader = tqdm(alb_train_dataloader, desc="Training")
+        loader = tqdm(range(loader_len), desc="Training")
         # iterate over data
-        for i in range(loader_len):
+        for i in loader:
             # zero the parameter gradients
             optimizer.zero_grad()
 
