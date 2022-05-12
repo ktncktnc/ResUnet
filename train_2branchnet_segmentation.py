@@ -216,7 +216,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         t_data = next(t_batch)
         t_image1 = t_data['x'].to(device)
         t_image2 = t_data['y'].to(device)
-        t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long(())
+        t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long()
 
         s_outputs, s_output_domains = model.segment_forward(s_images, alpha=alpha)
         t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
