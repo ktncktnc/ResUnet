@@ -87,4 +87,32 @@ def np_dice_coeff(input, target):
     intersection = np.multiply(pred, truth).sum(1)
     loss = (2.0 * intersection + smooth)/(pred.sum(1) + truth.sum(1) + smooth)
 
-    return loss.mean()
+    return loss.sum()/num_in_target
+
+
+def np_metrics(y_pred, y_true):
+    num_in_target = y_pred.shape[0]
+    y_pred = np.reshape(y_pred, (num_in_target, -1))
+    y_true = np.reshape(y_true, (num_in_target, -1))
+
+    tp = (y_pred* y_true).sum(1)
+    tn = ((1 - y_true) * (1 - y_pred)).sum(1)
+    fp = ((1 - y_true) * y_pred).sum(1)
+    fn = (y_true * (1 - y_pred)).sum(1)
+
+    epsilon = 1e-7
+    precision = tp / (tp + fp + epsilon)
+    recall = tp / (tp + fn + epsilon)
+    f1 = 2 * (precision * recall) / (precision + recall + epsilon)
+    dice = 2*tp/(2*tp + fp + fn)
+
+    return precision.mean(), recall.mean(), f1.mean(), dice.mean()
+
+def acc(y_pred, y_true):
+    num_in_target = input.size(0)
+
+    smooth = 1.0
+
+    y_true = y_true.cpu().numpy()
+    pred = torch.argmax(y_pred, 1).cpu().numpy()
+    return np.sum(pred == y_true)/num_in_target

@@ -104,6 +104,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         # run training and validation
         # logging accuracy and loss
         s_train_acc = metrics.MetricTracker()
+        s_domain_acc = metrics.MetricTracker()
         s_train_loss = metrics.MetricTracker()
 
         loader = tqdm(range(loader_len), desc="Training")
@@ -140,6 +141,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             s_train_acc.update(metrics.dice_coeff(s_outputs[:, 0, ...], s_groundtruth[:, 0, ...]), s_outputs.size(0))
             s_train_loss.update(loss.data.item(), s_outputs.size(0))
+            s_domain_acc.update(metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains),
+                                s_outputs.size(0) + t_output_domains.size(0))
             # backward
             loss.backward()
             optimizer.step()
@@ -149,8 +152,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 writer.log_training(s_train_loss.avg, s_train_acc.avg, step, "s_training")
                 # writer.log_training(cd_train_loss.avg, cd_train_acc.avg, step, "cd_training")
                 loader.set_description(
-                    "S training Loss: {:.4f} dice: {:.4f}".format(
-                        s_train_loss.avg, s_train_acc.avg
+                    "S training Loss: {:.4f} domain training acc: {:.4f} dice: {:.4f}".format(
+                        s_train_loss.avg, s_domain_acc.avg, s_train_acc.avg
                     )
                 )
 
@@ -187,6 +190,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
     # logging accuracy and loss
     s_valid_acc = metrics.MetricTracker()
     s_valid_loss = metrics.MetricTracker()
+    s_domain_acc = metrics.MetricTracker()
 
     s_batch = iter(s_dataloader)
     t_batch = iter(t_dataloader)
@@ -225,12 +229,13 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
 
         s_valid_acc.update(metrics.dice_coeff(s_outputs[:, 0, ...], s_groundtruth[:, 0, ...]), s_outputs.size(0))
         s_valid_loss.update(loss.data.item(), s_outputs.size(0))
+        s_domain_acc.update(metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains), s_outputs.size(0) + t_output_domains.size(0))
 
     if write_log:
         logger.log_validation(s_valid_acc.avg, s_valid_loss.avg, step, "s_validation")
 
-        print("Segment validation loss: {:.4f} Acc: {:.4f}"
-          .format(s_valid_loss.avg, s_valid_acc.avg))
+        print("Segment validation loss: {:.4f} Acc: {:.4f} Domain Acc: {:.4f}"
+          .format(s_valid_loss.avg, s_valid_acc.avg, s_domain_acc.avg))
 
     model.train()
 
