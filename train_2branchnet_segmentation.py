@@ -124,6 +124,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             t_image2 = t_data['y'].to(device)
             t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long().to(device)
 
+            print(s_images.shape)
             s_outputs, s_output_domains = model.segment_forward(s_images)
             t_output_domains1 = model.domain_classify(t_image1)
             t_output_domains2 = model.domain_classify(t_image2)
