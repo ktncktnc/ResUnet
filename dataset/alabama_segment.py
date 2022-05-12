@@ -53,8 +53,9 @@ class AlabamaDataset(torch.utils.data.Dataset):
                 A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
                 A.RandomRotate90(),
                 A.RandomGamma(),
-                A.RGBShift(p=0.2),
-                A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
+                A.Blur(blur_limit=5, p=0.4),
+                A.RGBShift(p=0.7),
+                A.RandomBrightnessContrast(brightness_limit=0.4, contrast_limit=0.4, p=0.7),
                 A.Resize(resized_shape[0], resized_shape[1]),
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                 ToTensorV2()
