@@ -29,7 +29,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     writer = MyWriter("{}/{}".format(hpconfig.log, name))
 
     # Model
-    resnet = models.resnet34(pretrained=True)
+    resnet = models.resnet50(pretrained=True)
     model = DependentResUnetMultiDecoder(resnet=resnet).to(device)
 
     # set up binary cross entropy and dice loss
