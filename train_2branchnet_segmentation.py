@@ -15,12 +15,12 @@ import ssl
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
-domain_loss_weight = 0.05
-max_domain_loss_weight = 0.5
-domain_loss_weight_decay = 1.07
-
 def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     ssl._create_default_https_context = ssl._create_unverified_context
+
+    domain_loss_weight = 0.05
+    max_domain_loss_weight = 0.5
+    domain_loss_weight_decay = 1.07
 
     checkpoint_dir = "{}/{}".format(hpconfig.checkpoints, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -157,7 +157,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
                 valid_metrics = validation(
-                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight, True, writer, step
+                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight, domain_loss_weight, True, writer, step
                 )
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
@@ -182,7 +182,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         domain_loss_weight = min(max_domain_loss_weight, domain_loss_weight*domain_loss_weight_decay)
 
 
-def validation(s_dataloader, t_dataloader, model, criterion, device, training_weight, write_log=False, logger=None, step=None):
+def validation(s_dataloader, t_dataloader, model, criterion, device, training_weight, domain_loss_weight, write_log=False, logger=None, step=None):
     print("\nValidation...")
     # logging accuracy and loss
     s_valid_acc = metrics.MetricTracker()
