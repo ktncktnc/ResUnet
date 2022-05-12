@@ -92,10 +92,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     nllloss = torch.nn.NLLLoss().to(device)
 
     for epoch in range(start_epoch, num_epochs):
-        alb_train_batch = iter(alb_dataset_train)
-        alb_val_batch = iter(alb_dataset_val)
-        s2l_train_batch = iter(s2l_dataset_train)
-        s2l_val_batch = iter(s2l_dataset_train)
+        alb_train_batch = iter(alb_train_dataloader)
+        s2l_train_batch = iter(s2l_train_dataloader)
 
         print("Epoch {}/{}".format(epoch, num_epochs - 1))
         print("-" * 10)
