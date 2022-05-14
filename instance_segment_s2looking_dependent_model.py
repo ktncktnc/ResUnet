@@ -97,8 +97,8 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
             cd_i1 = data['x'].cuda()
             cd_i2 = data['y'].cuda()
             cd_labels = data['mask'].cuda()
-            outputs_i1 = model.segment_forward(cd_i1)
-            outputs_i2 = model.segment_forward(cd_i2)
+            outputs_i1 = model.segment_forward(cd_i1, domain_classify=False)
+            outputs_i2 = model.segment_forward(cd_i2, domain_classify=False)
 
             #cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
 
