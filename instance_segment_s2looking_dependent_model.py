@@ -97,22 +97,23 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
             cd_i1 = data['x'].cuda()
             cd_i2 = data['y'].cuda()
             cd_labels = data['mask'].cuda()
-            outputs = model(cd_i1, cd_i2)
+            outputs_i1 = model.segment_forward(cd_i1)
+            outputs_i2 = model.segment_forward(cd_i2)
 
-            cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
+            #cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
 
-            cm_probs = outputs['cm'].cpu().numpy()
-            x_probs = outputs['x'].cpu().numpy()
-            y_probs = outputs['y'].cpu().numpy()
+            #cm_probs = outputs['cm'].cpu().numpy()
+            x_probs = outputs_i1.cpu().numpy()
+            y_probs = outputs_i2.cpu().numpy()
 
-            cm = (cm_probs >= threshold) * 1
+            #cm = (cm_probs >= threshold) * 1
             x = (x_probs >= threshold) * 1
             y = (y_probs >= threshold) * 1
 
             hg_probs = []
             final_probs = []
 
-            for i in range(cm.shape[0]):
+            for i in range(x.shape[0]):
                 # Get file name
                 filename = dataset.files[idx * batch_size + i]
                 divide = filename['divide']
@@ -121,11 +122,11 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
-                full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
+                # full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
                 # full_label[x1:x2, y1:y2] =
                 full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
                 full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
-                full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
+                # full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
 
                 if divide >= dataset.divide - 1:
                     # Colorize instance segmentation map and save
@@ -139,39 +140,39 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                         os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
                         astype(int)
 
-                    masks1 = torch.from_numpy(masks1)
-                    masks2 = torch.from_numpy(masks2)
-
-                    # Hungarian algorithm
-                    hg_map = change_detection_map(masks1, masks2, img_height, img_width)
-                    hg_img = (hg_map * 255).astype(np.uint8)
-
-                    mask_color_1 = convert_to_color_map(masks1, img_width, img_height)
-                    mask_color_2 = convert_to_color_map(masks2, img_width, img_height)
-                    plot_and_save(mask_color_1, mask_color_2, hg_img,
-                                  os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
-
-                    # Save CM from CD branch
-                    cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
-                    cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
-
-                    # Calculate final CM
-                    cm_x_probs = np.multiply(full_x_probs, hg_map)
-                    cm_y_probs = np.multiply(full_y_probs, hg_map)
-
-                    hg_prob = np.maximum(cm_x_probs, cm_y_probs)
-                    hg_probs.append(hg_prob)
-
-                    # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
-                    final_prob = np.maximum(hg_prob, full_cm_probs)
-                    final_probs.append(final_prob)
-
-                    final_map = (final_prob >= threshold) * 255
-                    final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
-                    final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
-
-            hg_probs = np.array(hg_probs)
-            final_probs = np.array(final_probs)
+            #         masks1 = torch.from_numpy(masks1)
+            #         masks2 = torch.from_numpy(masks2)
+            #
+            #         # Hungarian algorithm
+            #         hg_map = change_detection_map(masks1, masks2, img_height, img_width)
+            #         hg_img = (hg_map * 255).astype(np.uint8)
+            #
+            #         mask_color_1 = convert_to_color_map(masks1, img_width, img_height)
+            #         mask_color_2 = convert_to_color_map(masks2, img_width, img_height)
+            #         plot_and_save(mask_color_1, mask_color_2, hg_img,
+            #                       os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
+            #
+            #         # Save CM from CD branch
+            #         #cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
+            #         #cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
+            #
+            #         # Calculate final CM
+            #         #cm_x_probs = np.multiply(full_x_probs, hg_map)
+            #         #cm_y_probs = np.multiply(full_y_probs, hg_map)
+            #
+            #         hg_prob = np.maximum(cm_x_probs, cm_y_probs)
+            #         hg_probs.append(hg_prob)
+            #
+            #         # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
+            #         final_prob = np.maximum(hg_prob, full_cm_probs)
+            #         final_probs.append(final_prob)
+            #
+            #         final_map = (final_prob >= threshold) * 255
+            #         final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
+            #         final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
+            #
+            # hg_probs = np.array(hg_probs)
+            # final_probs = np.array(final_probs)
 
             #hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
             #final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
