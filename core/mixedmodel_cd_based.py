@@ -29,7 +29,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.cd_o_channel = cd_o_channel
 
         if resnet is None:
-            resnet = models.resnet34()
+            resnet = models.resnet50()
         self.resnet = resnet
 
         self.create_input_block()
