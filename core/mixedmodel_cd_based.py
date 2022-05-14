@@ -141,20 +141,20 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.domain_classifier.add_module("d_avgpool", nn.AdaptiveAvgPool2d((1, 1)))
         self.domain_classifier.add_module("d_flat", nn.Flatten())
         
-        for i in range(1, len(self.encoded_channels)):
-            self.domain_classifier.add_module("d_fc{i}".format(i=i), nn.Linear(self.encoded_channels[-i], self.encoded_channels[-i - 1]))
-            self.domain_classifier.add_module("d_bn{i}".format(i=i), nn.BatchNorm1d(self.encoded_channels[-i - 1]))
-            self.domain_classifier.add_module("d_relu{i}".format(i=i), nn.ReLU(True))
+        # # for i in range(1, len(self.encoded_channels)):
+        #     self.domain_classifier.add_module("d_fc{i}".format(i=i), nn.Linear(self.encoded_channels[-i], self.encoded_channels[-i - 1]))
+        #     self.domain_classifier.add_module("d_bn{i}".format(i=i), nn.BatchNorm1d(self.encoded_channels[-i - 1]))
+        #     self.domain_classifier.add_module("d_relu{i}".format(i=i), nn.ReLU(True))
 
-        self.domain_classifier.add_module("d_fc4", nn.Linear(int(self.encoded_channels[0]), int(self.encoded_channels[0]/4)))
-        self.domain_classifier.add_module("d_bn4", nn.BatchNorm1d(int(self.encoded_channels[0]/4)))
+        self.domain_classifier.add_module("d_fc4", nn.Linear(2048, 512))
+        self.domain_classifier.add_module("d_bn4", nn.BatchNorm1d(512))
         self.domain_classifier.add_module("d_relu4", nn.ReLU(True))
 
         # self.domain_classifier.add_module("d_fc5", nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/16)))
         # self.domain_classifier.add_module("d_bn5", nn.BatchNorm1d(int(self.encoded_channels[0]/16)))
         # self.domain_classifier.add_module("d_relu5", nn.ReLU(True))
 
-        self.domain_classifier.add_module("d_out", nn.Linear(int(self.encoded_channels[0]/4), int(domain_n_classes)))
+        self.domain_classifier.add_module("d_out", nn.Linear(512, int(domain_n_classes)))
         self.domain_classifier.add_module("d_softmax", nn.LogSoftmax())
 
     def input_process(self, x):
