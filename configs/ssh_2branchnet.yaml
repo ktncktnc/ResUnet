@@ -4,7 +4,7 @@ log: "logs"
 logging_step: 100
 validation_interval: 3 # Save and valid have same interval
 checkpoints: "weights"
-batch_size: 6
+batch_size: 4
 lr: 0.001
 IMAGE_SIZE: 1500
 CROP_SIZE: 224
