@@ -30,7 +30,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             split: str = "train",
             augment_transform=None,
             divide=2,
-            resized_shape=(512, 512)
+            resized_shape=(256, 256)
     ):
         # assert split in self.splits
         self.root = root
