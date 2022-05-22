@@ -120,7 +120,7 @@ class TrackingMetric(torchmetrics.Metric):
         average: Optional[str] = "micro",
         **kwargs: Dict[str, Any]
     ) -> None:
-        super.__init__(**kwargs)
+        super().__init__(**kwargs)
         self.name = name
         self.average = average
         if average not in ["micro"]:
