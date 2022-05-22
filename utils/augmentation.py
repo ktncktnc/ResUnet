@@ -16,9 +16,9 @@ class PerImageStandazation(ImageOnlyTransform):
         super().__init__(always_apply, p)
 
     def apply(self, image: np.ndarray, **params):
-        image.astype(np.float32)
+        image = image.astype(np.float32)
         num_pixels = np.prod(image.shape[-3:])
-        image_mean = np.mean(image, axis=(-1, -2, -3))
+        image_mean = np.mean(image, axis=(-1, -2, -3), dtype=np.float32 )
 
         stddev = np.std(image, axis=(-1, -2, -3))
         min_stddev = 1.0/np.sqrt(num_pixels)
