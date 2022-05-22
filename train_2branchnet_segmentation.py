@@ -262,17 +262,17 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
         loss = segment_loss + domain_loss
 
-        # validation_metrics(
-        #     preds=output_domains.cpu(),
-        #     target=domains.cpu(),
-        #     dice_preds=s_outputs[:, 0, ...].cpu(),
-        #     dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor).cpu(),
-        #     value={
-        #         "loss": loss.cpu(),
-        #         "segmentation_loss": segment_loss.cpu(),
-        #         "domain_loss": domain_loss.cpu()
-        #     }
-        # )
+        validation_metrics(
+            preds=output_domains.cpu(),
+            target=domains.cpu(),
+            dice_preds=s_outputs[:, 0, ...].cpu(),
+            dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor).cpu(),
+            value={
+                "loss": loss.cpu(),
+                "segmentation_loss": segment_loss.cpu(),
+                "domain_loss": domain_loss.cpu()
+            }
+        )
 
     values = validation_metrics.compute()
 
