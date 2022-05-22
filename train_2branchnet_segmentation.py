@@ -17,8 +17,10 @@ import torch
 import argparse
 import os
 import ssl
+
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
+
 
 def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     ssl._create_default_https_context = ssl._create_unverified_context
@@ -33,7 +35,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     os.makedirs("{}/{}".format(hpconfig.log, name), exist_ok=True)
-    #writer = MyWriter("{}/{}".format(hpconfig.log, name))
+    # writer = MyWriter("{}/{}".format(hpconfig.log, name))
 
     # Model
     resnet = models.resnet50(pretrained=True)
@@ -99,10 +101,10 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     )
 
     s2l_train_dataloader = DataLoader(
-        s2l_dataset_train, batch_size=int(hpconfig.batch_size/2), num_workers=2, shuffle=True
+        s2l_dataset_train, batch_size=int(hpconfig.batch_size / 2), num_workers=2, shuffle=True
     )
     s2l_val_dataloader = DataLoader(
-        s2l_dataset_val, batch_size=int(hpconfig.batch_size/2), num_workers=2, shuffle=False
+        s2l_dataset_val, batch_size=int(hpconfig.batch_size / 2), num_workers=2, shuffle=False
     )
 
     loader_len = min(len(alb_dataset_train), len(s2l_train_dataloader))
@@ -158,10 +160,10 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             loss = segment_loss + domain_loss
 
             training_metrics(
-                pred=output_domains,
+                preds=output_domains,
                 target=domains,
-                dice_pred = s_outputs[:, 0, ...],
-                dice_target = s_groundtruth[:, 0, ...],
+                dice_preds=s_outputs[:, 0, ...],
+                dice_target=s_groundtruth[:, 0, ...],
                 value={
                     "loss": loss,
                     "segmentation_loss": segment_loss,
@@ -192,7 +194,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
                 valid_metrics = validation(
-                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight, domain_loss_weight, alpha, validation_metrics
+                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight,
+                    domain_loss_weight, alpha, validation_metrics
                 )
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
@@ -214,11 +217,12 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             step += 1
 
-        domain_loss_weight = min(max_domain_loss_weight, domain_loss_weight*domain_loss_weight_decay)
+        domain_loss_weight = min(max_domain_loss_weight, domain_loss_weight * domain_loss_weight_decay)
         training_metrics.reset()
 
 
-def validation(s_dataloader, t_dataloader, model, criterion, device, training_weight, domain_loss_weight, alpha, validation_metrics: torchmetrics.MetricCollection):
+def validation(s_dataloader, t_dataloader, model, criterion, device, training_weight, domain_loss_weight, alpha,
+               validation_metrics: torchmetrics.MetricCollection):
     print("\nValidation...")
 
     s_batch = iter(s_dataloader)
