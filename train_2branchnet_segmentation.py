@@ -184,12 +184,17 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # tensorboard logging
             if (step + 1) % hpconfig.logging_step == 0:
                 values = training_metrics.compute()
-                print(values)
                 loader.set_description(
                     "Training: loss: {:.4f} domain loss: {:.4f} dice: {:.4f}".format(
-                        values["Loss"], values["Domain_Loss"], values["Segmentation_Dice"]
+                        values["train_Loss"], values["train_Domain_Loss"], values["train_Segmentation_Dice"]
                     )
                 )
+                writer.add_scalar("alpha", alpha, step)
+                writer.add_scalar("train_Loss", values["train_Loss"], step)
+                writer.add_scalar("train_Segmentation_Loss", values["train_Segmentation_Loss"], step)
+                writer.add_scalar("train_Domain_Loss", values["train_Domain_Loss"], step)
+                writer.add_scalar("train_Segmentation_Dice", values["train_Segmentation_Dice"], step)
+                writer.add_scalar("train_Domain_Accuracy", values["train_Domain_Accuracy"], step)
 
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
@@ -197,11 +202,18 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                     alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight,
                     domain_loss_weight, alpha, validation_metrics
                 )
+
+                writer.add_scalar("validation_Loss", valid_metrics["validation_Loss"], step)
+                writer.add_scalar("validation_Segmentation_Loss", valid_metrics["validation_Segmentation_Loss"], step)
+                writer.add_scalar("validation_Domain_Loss", valid_metrics["validation_Domain_Loss"], step)
+                writer.add_scalar("validation_Segmentation_Dice", valid_metrics["validation_Segmentation_Dice"], step)
+                writer.add_scalar("validation_Domain_Accuracy", valid_metrics["validation_Domain_Accuracy"], step)
+
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
                 )
                 # store best loss and save a model checkpoint
-                s_best_loss = min(valid_metrics["Loss"], s_best_loss)
+                s_best_loss = min(valid_metrics["validation_Loss"], s_best_loss)
                 torch.save(
                     {
                         "step": step,
@@ -275,10 +287,9 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         )
 
     values = validation_metrics.compute()
-    print(values)
     print(
         "Validation: loss: {:.4f} domain loss: {:.4f} dice: {:.4f}".format(
-            values["Loss"], values["Domain_Loss"], values["Segmentation_Dice"]
+            values["validation_Loss"], values["validation_Domain_Loss"], values["validation_Segmentation_Dice"]
         )
     )
 
