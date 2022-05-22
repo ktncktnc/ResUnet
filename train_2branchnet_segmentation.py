@@ -161,7 +161,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             training_metrics(
                 preds=output_domains,
-                target=domains,
+                target=domains.type(torch.IntTensor),
                 dice_preds=s_outputs[:, 0, ...],
                 dice_target=s_groundtruth[:, 0, ...],
                 value={
