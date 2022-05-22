@@ -162,7 +162,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             training_metrics(
                 preds=output_domains,
                 target=domains,
-                dice_preds=s_outputs[:, 0, ...],
+                dice_preds=s_outputs[:, 0, ...].cpu(),
                 dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor),
                 value={
                     "loss": loss,
