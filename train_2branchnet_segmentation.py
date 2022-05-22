@@ -235,7 +235,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
     model.eval()
 
     # Iterate over data.
-    for i in range(loader_len):
+    for i in range(loader_len[:10]):
         # get the inputs and wrap in Variable
         s_data = next(s_batch)
         s_images = s_data['image'].to(device)
