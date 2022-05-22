@@ -30,7 +30,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             split: str = "train",
             augment_transform=None,
             divide=2,
-            resized_shape=(256, 256)
+            resized_shape=(512, 512)
     ):
         # assert split in self.splits
         self.root = root
@@ -57,7 +57,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                 A.RGBShift(p=0.5),
                 A.RandomBrightnessContrast(brightness_limit=0.4, contrast_limit=0.4, p=0.7),
                 A.Resize(resized_shape[0], resized_shape[1]),
-                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                PerImageStandazation(),
                 ToTensorV2()
             ],
                 additional_targets={
@@ -71,7 +71,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         else:
             return A.Compose([
                 A.Resize(resized_shape[0], resized_shape[1]),
-                A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                PerImageStandazation(),
                 ToTensorV2()
             ],
                 additional_targets={

@@ -7,8 +7,26 @@ warnings.simplefilter("ignore", UserWarning)
 
 from skimage import transform
 import random
-from albumentations.core.transforms_interface import DualTransform
+from albumentations.core.transforms_interface import DualTransform, ImageOnlyTransform
 import numpy as np
+
+
+class PerImageStandazation(ImageOnlyTransform):
+    def __init__(self, always_apply=False, p=1.0):
+        super().__init__(always_apply, p)
+
+    def apply(self, image: np.ndarray, **params):
+        image.astype(np.float32)
+        num_pixels = np.prod(image.shape[-3:])
+        image_mean = np.mean(image, axis=(-1, -2, -3))
+
+        stddev = np.std(image, axis=(-1, -2, -3))
+        min_stddev = 1.0/np.sqrt(num_pixels)
+        adjusted_stddev = np.maximum(stddev, min_stddev)
+
+        image -= image_mean
+        image = np.divide(image, adjusted_stddev)
+        return image
 
 
 class RandomCropSaveSegmentMask(DualTransform):
