@@ -55,7 +55,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             "Loss": TrackingMetric(name="loss"),
             "Segmentation_Loss": TrackingMetric(name="segmentation_loss"),
             "Domain_Loss": TrackingMetric(name="domain_loss"),
-            "Segmentation_Dice": Dice(),
+            #"Segmentation_Dice": Dice(),
             "Domain_Accuracy": torchmetrics.classification.Accuracy(),
         },
         prefix='train_'
@@ -162,8 +162,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             training_metrics(
                 preds=output_domains,
                 target=domains,
-                dice_preds=s_outputs[:, 0, ...],
-                dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor),
+                # dice_preds=s_outputs[:, 0, ...],
+                # dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor),
                 value={
                     "loss": loss,
                     "segmentation_loss": segment_loss,
