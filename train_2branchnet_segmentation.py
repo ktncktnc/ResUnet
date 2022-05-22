@@ -160,14 +160,14 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             loss = segment_loss + domain_loss
 
             training_metrics(
-                preds=output_domains,
-                target=domains,
+                preds=output_domains.cpu(),
+                target=domains.cpu(),
                 dice_preds=s_outputs[:, 0, ...].cpu(),
-                dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor),
+                dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor).cpu(),
                 value={
-                    "loss": loss,
-                    "segmentation_loss": segment_loss,
-                    "domain_loss": domain_loss
+                    "loss": loss.cpu(),
+                    "segmentation_loss": segment_loss.cpu(),
+                    "domain_loss": domain_loss.cpu()
                 }
             )
 
@@ -263,14 +263,14 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         loss = segment_loss + domain_loss
 
         validation_metrics(
-            preds=output_domains,
-            target=domains,
+            preds=output_domains.cpu(),
+            target=domains.cpu(),
             dice_pred=s_outputs[:, 0, ...].cpu(),
-            dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor),
+            dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor).cpu(),
             value={
-                "loss": loss,
-                "segmentation_loss": segment_loss,
-                "domain_loss": domain_loss
+                "loss": loss.cpu(),
+                "segmentation_loss": segment_loss.cpu(),
+                "domain_loss": domain_loss.cpu()
             }
         )
 
