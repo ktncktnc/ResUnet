@@ -265,7 +265,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         validation_metrics(
             preds=output_domains,
             target=domains,
-            dice_pred=s_outputs[:, 0, ...],
+            dice_pred=s_outputs[:, 0, ...].cpu(),
             dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor),
             value={
                 "loss": loss,
