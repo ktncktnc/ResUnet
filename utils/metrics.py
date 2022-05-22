@@ -126,16 +126,18 @@ class TrackingMetric(torchmetrics.Metric):
         if average not in ["micro"]:
             raise ValueError(f"The `reduce` {average} is not valid.")
 
-        self.add_state("values", default=[], dist_reduce_fx="cat")
+        self.add_state("sum_value", default=0.0, dist_reduce_fx="sum")
+        self.add_state("count", default=0.0, dist_reduce_fx="sum")
 
     def update(self, value: Dict) -> None:
         if self.name not in value.keys():
             raise ValueError("Passed dict doesn't contain key {name}".format(name=self.name))
 
-        self.values.append(value[self.name])
+        self.sum_value += value[self.name]
+        self.count += 1.0
 
     def compute(self) -> Tensor:
-        return torch.mean(torch.tensor(self.values))
+        return self.sum_value/self.count
 
 
 class BCEDiceLoss(nn.Module):
