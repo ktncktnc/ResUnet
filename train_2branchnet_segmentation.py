@@ -275,7 +275,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
         )
 
     values = validation_metrics.compute()
-
+    print(values)
     print(
         "Validation: loss: {:.4f} domain loss: {:.4f} dice: {:.4f}".format(
             values["Loss"], values["Domain_Loss"], values["Segmentation_Dice"]
