@@ -126,8 +126,8 @@ class TrackingMetric(torchmetrics.Metric):
         if average not in ["micro"]:
             raise ValueError(f"The `reduce` {average} is not valid.")
 
-        self.add_state("sum_value", default=0.0, dist_reduce_fx="sum")
-        self.add_state("count", default=0.0, dist_reduce_fx="sum")
+        self.add_state("sum_value", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("count", default=torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(self, value: Dict) -> None:
         if self.name not in value.keys():
