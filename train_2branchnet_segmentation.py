@@ -157,7 +157,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 segment_loss += training_weight[i] * _loss
 
             domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-            loss = segment_loss + domain_loss
+            loss = segment_loss + 0.6*domain_loss
 
             training_metrics(
                 preds=output_domains.cpu(),
@@ -247,7 +247,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
     model.eval()
 
     # Iterate over data.
-    for i in range(5):
+    for i in range(loader_len):
         # get the inputs and wrap in Variable
         s_data = next(s_batch)
         s_images = s_data['image'].to(device)
@@ -272,7 +272,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
             segment_loss += training_weight[i] * _loss
 
         domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-        loss = segment_loss + domain_loss
+        loss = segment_loss + 0.6*domain_loss
 
         validation_metrics(
             preds=output_domains.cpu(),
