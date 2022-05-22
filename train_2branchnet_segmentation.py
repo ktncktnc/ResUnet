@@ -145,7 +145,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
             t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
 
-            domains = torch.cat(s_domains, t_domains, dim=0)
+            domains = torch.cat((s_domains, t_domains), dim=0)
             output_domains = torch.cat((s_output_domains, t_output_domains), 0)
 
             # Segment loss
