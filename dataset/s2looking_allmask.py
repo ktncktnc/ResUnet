@@ -30,12 +30,14 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             split: str = "train",
             augment_transform=None,
             divide=2,
-            resized_shape=(256, 256)
+            resized_shape=(256, 256),
+            without_mask=False
     ):
         # assert split in self.splits
         self.root = root
         self.divide = divide
         self.resized_shape = resized_shape
+        self.without_mask = without_mask
 
         if augment_transform is None:
             self.transform = self.get_default_transform(split, self.resized_shape)
@@ -120,42 +122,51 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         image1 = np.asarray(Image.open(files["image1"]))[x1:x2, y1:y2, ...]
         image2 = np.array(Image.open(files["image2"]))[x1:x2, y1:y2, ...]
 
-        mask = (np.array(Image.open(files["mask"])) / 255.0)[x1:x2, y1:y2]
+        if not self.without_mask:
+            mask = (np.array(Image.open(files["mask"])) / 255.0)[x1:x2, y1:y2]
+            mask1 = np.asarray(Image.open(files["mask1"]))[x1:x2, y1:y2, ...]
+            mask2 = np.asarray(Image.open(files["mask2"]))[x1:x2, y1:y2, ...]
+            if len(mask1.shape) == 3 and mask1.shape[-1] > 1:
+                mask1 = mask1[:, :, 2]
+            if len(mask2.shape) == 3 and mask2.shape[-1] > 1:
+                mask2 = mask2[:, :, 0]
+            mask1 = create_multiclass_mask(mask1, False)
+            mask2 = create_multiclass_mask(mask2, False)
 
-        mask1 = np.asarray(Image.open(files["mask1"]))[x1:x2, y1:y2, ...]
-        mask2 = np.asarray(Image.open(files["mask2"]))[x1:x2, y1:y2, ...]
-        if len(mask1.shape) == 3 and mask1.shape[-1] > 1:
-            mask1 = mask1[:, :, 2]
-        if len(mask2.shape) == 3 and mask2.shape[-1] > 1:
-            mask2 = mask2[:, :, 0]
-        mask1 = create_multiclass_mask(mask1, False)
-        mask2 = create_multiclass_mask(mask2, False)
-
-        sample = {
-            'image': image1,
-            'image0': image2,
-            'mask': mask,
-            'mask1': mask1[0, ...],
-            'mask2': mask2[0, ...],
-            'border_mask1': mask1[1, ...],
-            'border_mask2': mask2[1, ...]
-        }
+            sample = {
+                'image': image1,
+                'image0': image2,
+                'mask': mask,
+                'mask1': mask1[0, ...],
+                'mask2': mask2[0, ...],
+                'border_mask1': mask1[1, ...],
+                'border_mask2': mask2[1, ...]
+            }
+        else:
+            sample = {
+                'image': image1,
+                'image0': image2
+            }
 
         transformed = self.transform(**sample)
 
         image1 = transformed['image']
         image2 = transformed['image0']
-        mask = transformed['mask']
 
-        mask1 = torch.zeros(2, mask.shape[0], mask.shape[1])
-        mask1[0, ...] = transformed['mask1']
-        mask1[1, ...] = transformed['border_mask1']
+        if not self.without_mask:
+            mask = transformed['mask']
 
-        mask2 = torch.zeros(2, mask.shape[0], mask.shape[1])
-        mask2[0, ...] = transformed['mask2']
-        mask2[1, ...] = transformed['border_mask2']
+            mask1 = torch.zeros(2, mask.shape[0], mask.shape[1])
+            mask1[0, ...] = transformed['mask1']
+            mask1[1, ...] = transformed['border_mask1']
 
-        return dict(x=image1.float(), y=image2.float(), mask=mask.float(), mask1=mask1.float(), mask2=mask2.float())
+            mask2 = torch.zeros(2, mask.shape[0], mask.shape[1])
+            mask2[0, ...] = transformed['mask2']
+            mask2[1, ...] = transformed['border_mask2']
+
+            return dict(x=image1.float(), y=image2.float(), mask=mask.float(), mask1=mask1.float(), mask2=mask2.float())
+        else:
+            return dict(x=image1.float(), y=image2.float())
 
     def get_resized_coord(self, divide):
         row = int(divide/self.divide)

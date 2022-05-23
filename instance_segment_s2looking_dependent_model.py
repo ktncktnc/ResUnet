@@ -67,7 +67,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, without_mask=True)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
