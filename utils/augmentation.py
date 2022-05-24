@@ -1,9 +1,11 @@
 import math
+import time
 import warnings
 import cv2
 from typing import Dict, Any
 
 warnings.simplefilter("ignore", UserWarning)
+from timeit import default_timer as timer
 
 from skimage import transform
 import random
@@ -44,12 +46,10 @@ class RandomCropSaveSegmentMask(DualTransform):
     def get_params_dependent_on_targets(self, params: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
-    def __init__(self, height, width, always_apply=False, p=1.0, stride=256, mask_threshold=0.3):
+    def __init__(self, height, width, always_apply=False, p=1.0):
         super().__init__(always_apply, p)
         self.height = height
         self.width = width
-        self.stride = stride
-        self.mask_threshold = mask_threshold
         self.patches = None
         self.patch = None
 
@@ -59,62 +59,28 @@ class RandomCropSaveSegmentMask(DualTransform):
     def get_params(self):
         return {"h_start": random.random(), "w_start": random.random()}
 
-    def get_patches(self, img_height, img_width):
-        patches = []
-        x1 = y1 = 0
-        y2 = self.height
-        x2 = self.width
-        i = 0
-
-        n_row = math.ceil((img_height - self.height)/self.stride)
-        n_col = math.ceil((img_width - self.width)/self.stride)
-
-        for row in range(n_row + 1):
-            x2 = min(img_height, self.height + row * self.stride)
-
-            for col in range(n_col + 1):
-                y2 = min(img_width, self.width + col*self.stride)
-
-                x1 = x2 - self.height
-                y1 = y2 - self.width
-
-                patch = {
-                    "x1": x1,
-                    "y1": y1,
-                    "x2": x2,
-                    "y2": y2
-                }
-                patches.append(patch)
-
-        random.shuffle(patches)
-        return patches
-
     def get_best_patch(self, mask):
-        if self.patches is None:
-            self.patches = self.get_patches(mask.shape[0], mask.shape[1])
+        sum_over_height = np.sum(mask, 0, dtype=float)
+        sum_over_width = np.sum(mask, 1, dtype=float)
 
-        total_pixel = np.sum(mask)
-        max_n_pixel = 0.0
-        max_patch = None
-        self.patch = None
-        for patch in self.patches:
-            if total_pixel < 1:
-                break
+        conv_sum_over_height = np.convolve(sum_over_height, np.ones(self.width, dtype=float), mode='valid')
+        conv_sum_over_width = np.convolve(sum_over_width, np.ones(self.height, dtype=float), mode='valid' )
+        total_sum_height = np.sum(conv_sum_over_height)
+        total_sum_width = np.sum(conv_sum_over_width)
 
-            n_pixel = np.sum(mask[patch['x1']:patch['x2'], patch['y1']:patch['y2']])
-            if n_pixel / total_pixel >= self.mask_threshold:
-                self.patch = patch
-                break
+        if total_sum_height == 0 or total_sum_width == 0:
+            rand_width = np.random.choice(conv_sum_over_height.size)
+            rand_height = np.random.choice(conv_sum_over_width.size)
+        else:
+            rand_width = np.random.choice(conv_sum_over_height.size, p=conv_sum_over_height/total_sum_height)
+            rand_height = np.random.choice(conv_sum_over_width.size, p=conv_sum_over_width/total_sum_width)
 
-            if n_pixel > max_n_pixel:
-                max_n_pixel = n_pixel
-                max_patch = patch
-
-        if self.patch is None:
-            if max_patch is None:
-                self.patch = self.patches[0]
-            else:
-                self.patch = max_patch
+        self.patch = {
+            "x1": rand_height,
+            "x2": rand_height + self.height,
+            "y1": rand_width,
+            "y2": rand_width + self.width
+        }
 
 
 class RescaleTarget(object):
