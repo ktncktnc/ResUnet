@@ -8,7 +8,7 @@ from tqdm import tqdm
 from utils.hparams import HParam
 import numpy as np
 from dataset.alabama_segment import AlabamaDataset
-from dataset.s2looking_allmask import S2LookingAllMask
+from dataset.s2looking_randomcrop import S2LookingRandomCrop
 from utils import metrics
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from utils.logger import MyWriter
@@ -90,8 +90,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     # cd
     alb_dataset_train = AlabamaDataset(hpconfig.dset1_dir, "train")
     alb_dataset_val = AlabamaDataset(hpconfig.dset1_dir, "test")
-    s2l_dataset_train = S2LookingAllMask(hpconfig.dset2_dir, "train")
-    s2l_dataset_val = S2LookingAllMask(hpconfig.dset2_dir, "test")
+    s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train")
+    s2l_dataset_val = S2LookingRandomCrop(hpconfig.dset2_dir, "test")
 
     alb_train_dataloader = DataLoader(
         alb_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
