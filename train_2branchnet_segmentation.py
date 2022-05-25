@@ -157,7 +157,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 segment_loss += training_weight[i] * _loss
 
             domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-            loss = segment_loss + 0.6*domain_loss
+            #loss = segment_loss + 0.6*domain_loss
+            loss = domain_loss
 
             training_metrics(
                 preds=output_domains.cpu(),
