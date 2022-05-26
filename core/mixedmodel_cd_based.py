@@ -140,20 +140,13 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.domain_classifier = nn.Sequential()
         self.domain_classifier.add_module("d_avgpool", nn.AdaptiveAvgPool2d((1, 1)))
         self.domain_classifier.add_module("d_flat", nn.Flatten())
+        self.domain_classifier.add_module("d_dropout", nn.Dropout(p=0.4))
 
         self.domain_classifier.add_module("d_fc1", nn.Linear(2048, 512))
         self.domain_classifier.add_module("d_bn1", nn.BatchNorm1d(512))
         self.domain_classifier.add_module("d_relu1", nn.ReLU(True))
 
-        self.domain_classifier.add_module("d_fc2", nn.Linear(512, 256))
-        self.domain_classifier.add_module("d_bn2", nn.BatchNorm1d(256))
-        self.domain_classifier.add_module("d_relu2", nn.ReLU(True))
-
-        self.domain_classifier.add_module("d_fc3", nn.Linear(256, 64))
-        self.domain_classifier.add_module("d_bn3", nn.BatchNorm1d(64))
-        self.domain_classifier.add_module("d_relu3", nn.ReLU(True))
-
-        self.domain_classifier.add_module("d_out", nn.Linear(int(64), int(domain_n_classes)))
+        self.domain_classifier.add_module("d_out", nn.Linear(512, int(domain_n_classes)))
         self.domain_classifier.add_module("d_softmax", nn.LogSoftmax())
 
     def input_process(self, x):

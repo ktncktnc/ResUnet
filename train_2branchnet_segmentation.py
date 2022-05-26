@@ -9,9 +9,9 @@ from utils.hparams import HParam
 import numpy as np
 from dataset.alabama_segment import AlabamaDataset
 from dataset.s2looking_randomcrop import S2LookingRandomCrop
+from dataset.s2looking_allmask import S2LookingAllMask
 from utils import metrics
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
-from utils.logger import MyWriter
 from utils.metrics import Dice, TrackingMetric
 import torch
 import argparse
@@ -28,8 +28,8 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     writer = SummaryWriter('runs/{name}'.format(name=name))
 
     domain_loss_weight = 0.05
-    max_domain_loss_weight = 0.5
-    domain_loss_weight_decay = 1.07
+    max_domain_loss_weight = 0.6
+    domain_loss_weight_decay = 1.25
 
     checkpoint_dir = "{}/{}".format(hpconfig.checkpoints, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -91,7 +91,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     alb_dataset_train = AlabamaDataset(hpconfig.dset1_dir, "train")
     alb_dataset_val = AlabamaDataset(hpconfig.dset1_dir, "test")
     s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train")
-    s2l_dataset_val = S2LookingRandomCrop(hpconfig.dset2_dir, "test")
+    s2l_dataset_val = S2LookingAllMask(hpconfig.dset2_dir, "test")
 
     alb_train_dataloader = DataLoader(
         alb_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
@@ -157,8 +157,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 segment_loss += training_weight[i] * _loss
 
             domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-            #loss = segment_loss + 0.6*domain_loss
-            loss = domain_loss
+            loss = segment_loss + domain_loss_weight*domain_loss
 
             training_metrics(
                 preds=output_domains.cpu(),
@@ -172,12 +171,6 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 }
             )
 
-            # cd_train_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
-            # cd_train_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
-
-            # s_train_acc.update(metrics.dice_coeff(s_outputs[:, 0, ...], s_groundtruth[:, 0, ...]), s_outputs.size(0))
-            # s_train_loss.update(loss.data.item(), s_outputs.size(0))
-            # s_domain_acc.update((metrics.acc(s_output_domains, s_domains) + metrics.acc(t_output_domains, t_domains))/2.0, 1)
             # backward
             loss.backward()
             optimizer.step()
@@ -190,31 +183,27 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                         values["train_Loss"], values["train_Domain_Loss"], values["train_Segmentation_Dice"]
                     )
                 )
+                for v_key in values:
+                    writer.add_scalar(v_key, values[v_key], step)
+
                 writer.add_scalar("alpha", alpha, step)
-                writer.add_scalar("train_Loss", values["train_Loss"], step)
-                writer.add_scalar("train_Segmentation_Loss", values["train_Segmentation_Loss"], step)
-                writer.add_scalar("train_Domain_Loss", values["train_Domain_Loss"], step)
-                writer.add_scalar("train_Segmentation_Dice", values["train_Segmentation_Dice"], step)
-                writer.add_scalar("train_Domain_Accuracy", values["train_Domain_Accuracy"], step)
+                writer.add_scalar("domain_loss_weight", domain_loss_weight, step)
 
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
-                valid_metrics = validation(
+                valid_values = validation(
                     alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight,
                     domain_loss_weight, alpha, validation_metrics
                 )
 
-                writer.add_scalar("validation_Loss", valid_metrics["validation_Loss"], step)
-                writer.add_scalar("validation_Segmentation_Loss", valid_metrics["validation_Segmentation_Loss"], step)
-                writer.add_scalar("validation_Domain_Loss", valid_metrics["validation_Domain_Loss"], step)
-                writer.add_scalar("validation_Segmentation_Dice", valid_metrics["validation_Segmentation_Dice"], step)
-                writer.add_scalar("validation_Domain_Accuracy", valid_metrics["validation_Domain_Accuracy"], step)
+                for v_key in valid_values:
+                    writer.add_scalar(v_key, valid_values[v_key], step)
 
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
                 )
                 # store best loss and save a model checkpoint
-                s_best_loss = min(valid_metrics["validation_Loss"], s_best_loss)
+                s_best_loss = min(valid_values["validation_Loss"], s_best_loss)
                 torch.save(
                     {
                         "step": step,
@@ -273,7 +262,7 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
             segment_loss += training_weight[i] * _loss
 
         domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-        loss = segment_loss + 0.6*domain_loss
+        loss = segment_loss + domain_loss_weight*domain_loss
 
         validation_metrics(
             preds=output_domains.cpu(),
