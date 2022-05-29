@@ -34,6 +34,8 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             without_mask=False
     ):
         # assert split in self.splits
+        self.width = None
+        self.height = None
         self.root = root
         self.divide = divide
         self.resized_shape = resized_shape
@@ -105,6 +107,7 @@ class S2LookingAllMask(torch.utils.data.Dataset):
 
         self.divide_height = int(image1.shape[0]/self.divide)
         self.divide_width = int(image1.shape[1]/self.divide)
+        self.height, self.width = image1.shape[0], image1.shape[1]
         self.files = files
 
     def __len__(self) -> int:
@@ -184,11 +187,15 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         col = divide - row*self.divide
 
         x1 = self.divide_height*row
-        x2 = self.divide_height*(row + 1)
+        if row < self.divide - 1:
+            x2 = self.divide_height*(row + 1)
+        else:
+            x2 = self.height
+
         y1 = self.divide_width*col
-        y2 = self.divide_width*(col + 1)
+        if col < self.divide - 1:
+            y2 = self.divide_width*(col + 1)
+        else:
+            y2 = self.width
 
         return x1, x2, y1, y2
-
-    def get_full_resized_shape(self):
-        return self.resized_shape[0]*self.divide, self.resized_shape[1]*self.divide

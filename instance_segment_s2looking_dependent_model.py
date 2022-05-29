@@ -56,7 +56,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     transform = albums.Compose([
         albums.Resize(256, 256),
         albums.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2()
+        ToTensorV2(),
     ],
         additional_targets={
             'image0': 'image',
@@ -67,7 +67,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, without_mask=True)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, 3, without_mask=True)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
@@ -128,7 +128,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
                 # full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
 
-                if divide >= dataset.divide - 1:
+                if divide >= dataset.divide*dataset.divide - 1:
                     # Colorize instance segmentation map and save
                     masks1 = save_mask_and_contour(
                         full_x[0, ...], full_x[1, ...], nuclei_palette,
