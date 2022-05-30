@@ -132,13 +132,15 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     # Colorize instance segmentation map and save
                     masks1 = save_mask_and_contour(
                         full_x[0, ...], full_x[1, ...], nuclei_palette,
-                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
-                        .astype(int)
+                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
+                        (dataset.width, dataset.height)
+                    ).astype(int)
 
                     masks2 = save_mask_and_contour(
                         full_y[0, ...], full_y[1, ...], nuclei_palette,
-                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
-                        astype(int)
+                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
+                        (dataset.width, dataset.height)
+                    ).astype(int)
 
             #         masks1 = torch.from_numpy(masks1)
             #         masks2 = torch.from_numpy(masks2)
