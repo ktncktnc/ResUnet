@@ -16,8 +16,8 @@ from utils.images import *
 from utils.hungarian import *
 
 
-def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
-         cm_weights=None, device=torch.device("cuda")):
+def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
+         cm_weights=None, device=torch.device("cuda"), dataset_split=2):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
     assert (0 <= mode < 3)
@@ -67,7 +67,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, 3, without_mask=True)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=True)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
@@ -190,6 +190,7 @@ if __name__ == '__main__':
     parser.add_argument("--savepath", type=str)
     parser.add_argument("--threshold", default=0.5, type=float)
     parser.add_argument("--batchsize", default=8, type=int)
+    parser.add_argument("--dset_divide", default=2, type=int)
     parser.add_argument(
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
     )
@@ -206,4 +207,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
     device = torch.device(args.device)
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, device)
+    main(hp, int(args.mode), args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, [0.3, 0.7], device, args.dset_divide)
