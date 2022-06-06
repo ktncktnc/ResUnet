@@ -5,24 +5,28 @@ from tqdm import tqdm
 from utils.hparams import HParam
 from dataset.s2looking_allmask import S2LookingAllMask
 from utils import metrics
+from torch.utils.tensorboard import SummaryWriter
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
-from utils.logger import MyWriter
+import torchmetrics
 import torch
 import argparse
 import os
 import ssl
+
+from utils.metrics import TrackingMetric, Dice
+
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
 
-def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
+def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, training_weight=None):
     ssl._create_default_https_context = ssl._create_unverified_context
 
     checkpoint_dir = "{}/{}".format(hpconfig.checkpoints, name)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     os.makedirs("{}/{}".format(hpconfig.log, name), exist_ok=True)
-    writer = MyWriter("{}/{}".format(hpconfig.log, name))
+    writer = SummaryWriter('runs/{name}'.format(name=name))
 
     # Model
     resnet = models.resnet34(pretrained=True)
@@ -37,12 +41,29 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     # decay LR
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 
+    training_metrics = torchmetrics.MetricCollection(
+        {
+            "Loss": TrackingMetric(name="loss"),
+            "Dice": Dice(),
+            "F1Score": torchmetrics.F1Score()
+        },
+        prefix='train_'
+    )
+
+    validation_metrics = training_metrics.clone(prefix="validation_")
+
     step = 0
     # starting params
-    s_best_loss = 999
+    #s_best_loss = 999
     cd_best_loss = 999
     start_epoch = 0
     # optionally resume from a checkpoint
+    if segmentation_weights:
+        if os.path.isfile(segmentation_weights):
+            print("=> loading segmentation weights '{}'".format(segmentation_weights))
+            checkpoint = torch.load(segmentation_weights, map_location=device)
+            model.load_segmentation_weight(checkpoint['state_dict'])
+
     if resume:
         if os.path.isfile(resume):
             print("=> loading checkpoint '{}'".format(resume))
@@ -50,7 +71,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
             start_epoch = checkpoint["epoch"]
 
-            s_best_loss = checkpoint["s_best_loss"]
+            #s_best_loss = checkpoint["s_best_loss"]
             cd_best_loss = checkpoint["cd_best_loss"]
             step = checkpoint["step"]
 
@@ -103,60 +124,56 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
             cd_labels = data['mask'].to(device)
-            cd_labels1 = data['mask1'].to(device)
-            cd_labels2 = data['mask2'].to(device)
 
             outputs = model(cd_i1, cd_i2)
 
             # CD loss
             cd_loss = criterion(outputs['cm'], cd_labels)
+            loss = cd_loss
 
-            # Segment loss
-            segment_loss = 0.0
-            for i in range(2):
-                _loss1 = criterion(outputs['x'][:, i, ...], cd_labels1[:, i, ...])
-                _loss2 = criterion(outputs['y'][:, i, ...], cd_labels2[:, i, ...])
-                segment_loss += training_weight[i] * (_loss1 + _loss2)/2.0
-
-            loss = cd_loss + segment_loss*0.9
-
-            cd_train_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
-            cd_train_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
-
-            s_train_acc.update(metrics.dice_coeff(outputs['x'], cd_labels1), outputs['x'].size(0))
-            s_train_loss.update(segment_loss.data.item(), outputs['x'].size(0))
+            training_metrics(
+                dice_preds = outputs['cm'].cpu(),
+                dice_target = cd_labels,
+                value = {
+                    "loss": loss.cpu()
+                }
+            )
             # backward
             loss.backward()
             optimizer.step()
 
             # tensorboard logging
             if (step + 1) % hpconfig.logging_step == 0:
-                writer.log_training(s_train_loss.avg, s_train_acc.avg, step, "s_training")
-                writer.log_training(cd_train_loss.avg, cd_train_acc.avg, step, "cd_training")
+                values = training_metrics.compute()
+                for v_key in values:
+                    writer.add_scalar(v_key, values[v_key], step)
+
                 loader.set_description(
-                    "S training Loss: {:.4f} acc: {:.4f} CD training Loss: {:.4f} acc: {:.4f}".format(
-                        s_train_loss.avg, s_train_acc.avg, cd_train_loss.avg, cd_train_acc.avg
+                    "CD training Loss: {:.4f} dice: {:.4f} f1: {:.4f}".format(
+                        values['train_Loss'], values['train_Dice'], values['train_F1Score']
                     )
                 )
 
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
-                valid_metrics = validation(
-                    cd_val_dataloader, model, criterion, device, training_weight, True, writer, step
+                valid_values = validation(
+                    cd_val_dataloader, model, criterion, device, training_weight, validation_metrics, True, writer, step
                 )
+                for v_key in valid_values:
+                    writer.add_scalar(v_key, valid_values[v_key], step)
+
                 save_path = os.path.join(
                     checkpoint_dir, "%s_checkpoint_%04d.pt" % (name, step)
                 )
                 # store best loss and save a model checkpoint
-                s_best_loss = min(valid_metrics["s_valid_loss"], s_best_loss)
-                cd_best_loss = min(valid_metrics["cd_valid_loss"], cd_best_loss)
+                cd_best_loss = min(valid_values["validation_Loss"], cd_best_loss)
                 torch.save(
                     {
                         "step": step,
                         "epoch": epoch,
                         "arch": "ResUnet",
                         "state_dict": model.state_dict(),
-                        "s_best_loss": s_best_loss,
+                        #"s_best_loss": s_best_loss,
                         "cd_best_loss": cd_best_loss,
                         "optimizer": optimizer.state_dict(),
                     },
@@ -168,18 +185,17 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
         print("Test...")
         test_metrics = validation(
-            cd_test_dataloader, model, criterion, device, training_weight
+            cd_test_dataloader, model, criterion, device, training_weight, validation_metrics
         )
         print(test_metrics)
 
 
-def validation(cd_valid_loader, model, criterion, device, training_weight, write_log=False, logger=None, step=None):
+def validation(
+    cd_valid_loader, model, criterion, device, training_weight,
+    validation_metrics: torchmetrics.MetricCollection,
+    write_log=False, logger=None, step=None
+):
     print("\nValidation...")
-    # logging accuracy and loss
-    s_valid_acc = metrics.MetricTracker()
-    s_valid_loss = metrics.MetricTracker()
-    cd_valid_acc = metrics.MetricTracker()
-    cd_valid_loss = metrics.MetricTracker()
 
     # switch to evaluate mode
     model.eval()
@@ -190,41 +206,27 @@ def validation(cd_valid_loader, model, criterion, device, training_weight, write
         i1 = data['x'].to(device)
         i2 = data['y'].to(device)
         cd_labels = data['mask'].to(device)
-        cd_labels1 = data['mask1'].to(device)
-        cd_labels2 = data['mask2'].to(device)
 
         outputs = model(i1, i2)
         cd_loss = criterion(outputs['cm'], cd_labels)
 
-        s_loss = 0.0
-        for i in range(2):
-            _loss1 = criterion(outputs['x'][:, i, ...], cd_labels1[:, i, ...])
-            _loss2 = criterion(outputs['y'][:, i, ...], cd_labels2[:, i, ...])
-            s_loss += training_weight[i] * _loss1
-            s_loss += training_weight[i] * _loss2
+        validation_metrics(
+            dice_preds=outputs['cm'].cpu(),
+            dice_target=cd_labels,
+            value={
+                "loss": cd_loss.cpu()
+            }
+        )
 
-        cd_valid_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
-        cd_valid_loss.update(cd_loss.data.item(), outputs['cm'].size(0))
 
-        s_valid_acc.update(metrics.dice_coeff(outputs['x'], cd_labels1), outputs['x'].size(0))
-        s_valid_loss.update(s_loss.data.item(), outputs['x'].size(0))
-
-    if write_log:
-        logger.log_validation(s_valid_acc.avg, s_valid_loss.avg, step, "s_validation")
-        logger.log_validation(cd_valid_acc.avg, cd_valid_loss.avg, step, "cd_validation")
-
-        print("Segment validation loss: {:.4f} Acc: {:.4f} CD validation loss: {:.4f} Acc: {:.4f}"
-          .format(s_valid_loss.avg, s_valid_acc.avg, cd_valid_loss.avg, cd_valid_acc.avg))
+    values = validation_metrics.compute()
+    print("Validation: CD Loss: {:.4f} dice: {:.4f} f1: {:.4f}".format(
+        values['validation_Loss'], values['validation_Dice'], values['validation_F1Score']
+    ))
 
     model.train()
-
-    return {
-        "s_valid_loss": s_valid_loss.avg,
-        "s_valid_acc": s_valid_acc.avg,
-        "cd_valid_loss": cd_valid_loss.avg,
-        "cd_valid_acc": cd_valid_acc.avg
-    }
-
+    validation_metrics.reset()
+    return values
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Road and Building Extraction")
@@ -245,6 +247,7 @@ if __name__ == '__main__':
         metavar="PATH",
         help="path to latest checkpoint (default: none)",
     )
+    parser.add_argument("--segmentationweights", default="", type=str, metavar="PATH")
     parser.add_argument("--name", default="default", type=str, help="Experiment name")
     parser.add_argument("--mode", default=0, type=int, help="Training mode")
     parser.add_argument("--device", default="cuda:0", type=str, help="Device ID")
@@ -257,4 +260,4 @@ if __name__ == '__main__':
     weights = [1.0, 0.1]
     device = torch.device(args.device)
 
-    main(hp, num_epochs=args.epochs, resume=args.resume, name=args.name, device=device, training_weight=weights)
+    main(hp, num_epochs=args.epochs, resume=args.resume, segmentation_weights=args.segmentationweights, name=args.name, device=device, training_weight=weights)

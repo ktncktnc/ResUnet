@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -89,7 +91,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         # Working with input img
         siamese_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/4) + self.input_channel,
+            in_channels=int(self.encoded_channels[0]/4) + 1,
             out_channels=int(self.encoded_channels[0]/4),
             up_conv_in_channels=int(self.encoded_channels[0]/2),
             up_conv_out_channels=int(self.encoded_channels[0]/4)
@@ -184,27 +186,27 @@ class DependentResUnetMultiDecoder(nn.Module):
             fused_x = block(fused_x, encoder_pools[key])
         return fused_x
 
-    def siamese_forward(self, x, y):
+    def siamese_forward(self, x=None, y=None, encoded_x=None, encoded_y=None, pools_x=None, pools_y=None):
+        assert (x is not None) == (encoded_x is None)
+        assert (y is not None) == (encoded_y is None)
+        assert (encoded_x is None) == (pools_x is None)
+        assert (encoded_y is None) == (pools_y is None)
+
         # Encode
-        x, encoder_pools_x = self.encode(x)
-        y, encoder_pools_y = self.encode(y)
+        if encoded_x is None:
+            encoded_x, pools_x = self.encode(x)
+            encoded_y, pools_y = self.encode(y)
 
         # Bridge
-        a = torch.cat([x, y], 1)
+        a = torch.cat([encoded_x, encoded_y], 1)
         a = self.siamese_bridge(a)
 
         # Decode
-        pools = self.siamese_fuse(encoder_pools_x, encoder_pools_y)
+        pools = self.siamese_fuse(pools_x, pools_y)
         a = self.siamese_decode(a, pools)
         a = self.siamese_decoder_out(a)
 
-        return {
-            "x": x,
-            "pools_x": encoder_pools_x,
-            "y": y,
-            "pools_y": encoder_pools_y,
-            "cm": a
-        }
+        return a
 
     def segment_decode(self, x, encoder_pools):
         for i, block in enumerate(self.segment_decoder, 1):
@@ -224,32 +226,36 @@ class DependentResUnetMultiDecoder(nn.Module):
         x = ReverseLayerF.apply(x, alpha)
         return self.domain_classifier(x)
 
-    def segment_forward(self, x, domain_classify=True, alpha=None, pools=None, cm=None):
+    def segment_forward(self, x, domain_classify=True, alpha=None, pools=None, return_pool=False):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
-        assert (pools is None) == (cm is None)
         if pools is None:
             x, pools = self.encode(x)
-        else:
-            pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
-        x = self.segment_bridge(x)
-        a = self.segment_decode(x, pools)
+
+        a = self.segment_bridge(x)
+        a = self.segment_decode(a, pools)
         a = self.segment_decoder_out(a)
+
+        pools['layer_0'] = a[:, 0:1, ...]
 
         if domain_classify:
             d = self.domain_classify(encoded_feature=x, alpha=alpha)
-            return a, d
+            if return_pool:
+                return a, d, x, pools
+            else:
+                return a, d
+
+        if return_pool:
+            return a, x, pools
         return a
 
     def forward(self, x, y):
-        output = self.siamese_forward(x, y)
-        cm = output['cm']
+        x, encoded_x, pools_x = self.segment_forward(x, domain_classify=False, return_pool=True)
+        y, encoded_y, pools_y = self.segment_forward(y, domain_classify=False, return_pool=True)
 
-        # detached_cm = cm.detach().clone()
-        x = self.segment_forward(output['x'], output['pools_x'], cm)
-        y = self.segment_forward(output['y'], output['pools_y'], cm)
+        cm = self.siamese_forward(encoded_x=encoded_x, encoded_y=encoded_y, pools_x=pools_x, pools_y=pools_y)
 
         return {
             "cm": cm,
@@ -269,3 +275,10 @@ class DependentResUnetMultiDecoder(nn.Module):
                 for b in a.children():
                     for param in b.parameters():
                         param.require_grad = trainable
+
+    def load_segmentation_weight(self, state_dicts: Mapping[str, Any]):
+        for k in list(state_dicts.keys()):
+            if k.startswith("siamese"):
+                del state_dicts[k]
+
+        self.load_state_dict(state_dicts, strict=False)
