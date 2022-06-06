@@ -133,7 +133,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
             training_metrics(
                 dice_preds = outputs['cm'].cpu(),
-                dice_target = cd_labels,
+                dice_target = cd_labels.type(torch.IntTensor).cpu(),
                 value = {
                     "loss": loss.cpu()
                 }
@@ -212,7 +212,7 @@ def validation(
 
         validation_metrics(
             dice_preds=outputs['cm'].cpu(),
-            dice_target=cd_labels,
+            dice_target=cd_labels.type(torch.IntTensor).cpu(),
             value={
                 "loss": cd_loss.cpu()
             }
