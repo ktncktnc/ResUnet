@@ -54,7 +54,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     step = 0
     # starting params
-    #s_best_loss = 999
+    # s_best_loss = 999
     cd_best_loss = 999
     start_epoch = 0
     # optionally resume from a checkpoint
@@ -71,7 +71,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
             start_epoch = checkpoint["epoch"]
 
-            #s_best_loss = checkpoint["s_best_loss"]
+            # s_best_loss = checkpoint["s_best_loss"]
             cd_best_loss = checkpoint["cd_best_loss"]
             step = checkpoint["step"]
 
@@ -132,9 +132,11 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             loss = cd_loss
 
             training_metrics(
-                dice_preds = outputs['cm'].cpu(),
-                dice_target = cd_labels.type(torch.IntTensor).cpu(),
-                value = {
+                dice_preds=outputs['cm'].cpu(),
+                preds=outputs['cm'].cpu(),
+                dice_target=cd_labels.type(torch.IntTensor).cpu(),
+                target=cd_labels.type(torch.IntTensor).cpu(),
+                value={
                     "loss": loss.cpu()
                 }
             )
@@ -173,7 +175,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
                         "epoch": epoch,
                         "arch": "ResUnet",
                         "state_dict": model.state_dict(),
-                        #"s_best_loss": s_best_loss,
+                        # "s_best_loss": s_best_loss,
                         "cd_best_loss": cd_best_loss,
                         "optimizer": optimizer.state_dict(),
                     },
@@ -191,9 +193,9 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
 
 def validation(
-    cd_valid_loader, model, criterion, device, training_weight,
-    validation_metrics: torchmetrics.MetricCollection,
-    write_log=False, logger=None, step=None
+        cd_valid_loader, model, criterion, device, training_weight,
+        validation_metrics: torchmetrics.MetricCollection,
+        write_log=False, logger=None, step=None
 ):
     print("\nValidation...")
 
@@ -212,12 +214,13 @@ def validation(
 
         validation_metrics(
             dice_preds=outputs['cm'].cpu(),
+            preds=outputs['cm'].cpu(),
             dice_target=cd_labels.type(torch.IntTensor).cpu(),
+            target=cd_labels.type(torch.IntTensor).cpu(),
             value={
                 "loss": cd_loss.cpu()
             }
         )
-
 
     values = validation_metrics.compute()
     print("Validation: CD Loss: {:.4f} dice: {:.4f} f1: {:.4f}".format(
@@ -227,6 +230,7 @@ def validation(
     model.train()
     validation_metrics.reset()
     return values
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Road and Building Extraction")
@@ -260,4 +264,5 @@ if __name__ == '__main__':
     weights = [1.0, 0.1]
     device = torch.device(args.device)
 
-    main(hp, num_epochs=args.epochs, resume=args.resume, segmentation_weights=args.segmentationweights, name=args.name, device=device, training_weight=weights)
+    main(hp, num_epochs=args.epochs, resume=args.resume, segmentation_weights=args.segmentationweights, name=args.name,
+         device=device, training_weight=weights)
