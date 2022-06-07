@@ -137,34 +137,34 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     masks2 = torch.from_numpy(masks2)
 
                     # Hungarian algorithm
-                    hg_map = change_detection_map(masks1, masks2, 256, 256)
-                    hg_img = (hg_map * 255).astype(np.uint8)
+                    # hg_map = change_detection_map(masks1, masks2, 256, 256)
+                    # hg_img = (hg_map * 255).astype(np.uint8)
 
-                    mask_color_1 = convert_to_color_map(masks1)
-                    mask_color_2 = convert_to_color_map(masks2)
-                    plot_and_save(mask_color_1, mask_color_2, hg_img,
-                                  os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
+                    # mask_color_1 = convert_to_color_map(masks1)
+                    # mask_color_2 = convert_to_color_map(masks2)
+                    # plot_and_save(mask_color_1, mask_color_2, hg_img,
+                    #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                     # Save CM from CD branch
                     cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
                     cm_im = cm_im.resize((dataset.width, dataset.height))
                     cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
-                    # Calculate final CM
-                    cm_x_probs = np.multiply(full_x_probs, hg_map)
-                    cm_y_probs = np.multiply(full_y_probs, hg_map)
-
-                    hg_prob = np.maximum(cm_x_probs, cm_y_probs)
-                    hg_probs.append(hg_prob)
-
-                    # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
-                    final_prob = np.maximum(hg_prob, full_cm_probs)
-                    final_probs.append(final_prob)
-
-                    final_map = (final_prob >= threshold) * 255
-                    final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
-                    final_map = final_map.resize((dataset.width, dataset.height))
-                    final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
+                    # # Calculate final CM
+                    # cm_x_probs = np.multiply(full_x_probs, hg_map)
+                    # cm_y_probs = np.multiply(full_y_probs, hg_map)
+                    #
+                    # hg_prob = np.maximum(cm_x_probs, cm_y_probs)
+                    # hg_probs.append(hg_prob)
+                    #
+                    # # final_prob = hg_prob * cm_weights[0] + cm_probs[i, 0, ...] * cm_weights[1]
+                    # final_prob = np.maximum(hg_prob, full_cm_probs)
+                    # final_probs.append(final_prob)
+                    #
+                    # final_map = (final_prob >= threshold) * 255
+                    # final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
+                    # final_map = final_map.resize((dataset.width, dataset.height))
+                    # final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
 
             hg_probs = np.array(hg_probs)
             final_probs = np.array(final_probs)
