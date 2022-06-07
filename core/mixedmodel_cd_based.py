@@ -223,7 +223,7 @@ class DependentResUnetMultiDecoder(nn.Module):
             x = encoded_feature
         x = self.segment_bridge(x)
 
-        x = ReverseLayerF.apply(x, alpha)
+        #x = ReverseLayerF.apply(x, alpha)
         return self.domain_classifier(x)
 
     def segment_forward(self, x, domain_classify=True, alpha=None, pools=None, return_pool=False):

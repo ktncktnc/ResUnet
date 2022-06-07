@@ -70,8 +70,6 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             checkpoint = torch.load(resume, map_location=device)
 
             start_epoch = checkpoint["epoch"]
-
-            # s_best_loss = checkpoint["s_best_loss"]
             cd_best_loss = checkpoint["cd_best_loss"]
             step = checkpoint["step"]
 

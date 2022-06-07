@@ -76,7 +76,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             s_best_loss = checkpoint["s_best_loss"]
             step = checkpoint["step"]
 
-            model.load_state_dict(checkpoint["state_dict"])
+            model.load_segmentation_weight(checkpoint["state_dict"])
             optimizer.load_state_dict(checkpoint["optimizer"])
             print(
                 "=> loaded checkpoint '{}' (epoch {})".format(
@@ -157,7 +157,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 segment_loss += training_weight[i] * _loss
 
             domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
-            loss = segment_loss + domain_loss_weight*domain_loss
+            loss = segment_loss - domain_loss_weight*domain_loss
 
             training_metrics(
                 preds=output_domains.cpu(),
