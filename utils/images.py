@@ -11,9 +11,11 @@ def save_mask_and_contour(mask, contour, palette, filepath, new_size=None):
     labels = label_watershed(mask, seed).astype(np.uint8)
 
     im = Image.fromarray(labels, mode='P')
-    im.putpalette(palette)
     if new_size is not None:
         im = im.resize((new_size))
+
+    labels = np.array(im)
+    im.putpalette(palette)
     im.save(filepath)
 
     return multiclass_mask_to_multichannel(labels)
