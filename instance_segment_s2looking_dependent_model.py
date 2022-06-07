@@ -16,7 +16,7 @@ from utils.images import *
 from utils.hungarian import *
 
 
-def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
+def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
          cm_weights=None):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
@@ -72,7 +72,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, "val", transform)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, "split", transform)
 
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
@@ -171,6 +171,7 @@ if __name__ == '__main__':
     parser.add_argument("--savepath", type=str)
     parser.add_argument("--threshold", default=0.5, type=float)
     parser.add_argument("--batchsize", default=8, type=int)
+    parser.add_argument("--split", default="test", type=str)
     parser.add_argument(
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
     )
@@ -184,4 +185,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, args.pretrain, args.savepath, args.threshold, args.batchsize)
+    main(hp, int(args.mode), weights, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize)
