@@ -50,7 +50,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
     model = DependentResUnetMultiDecoder().to(device)
     checkpoint = torch.load(trained_path, map_location=device)
-    model.load_state_dict(checkpoint["state_dict"])
+    model.load_segmentation_weight(checkpoint["state_dict"])
     model.eval()
 
     transform = albums.Compose([
