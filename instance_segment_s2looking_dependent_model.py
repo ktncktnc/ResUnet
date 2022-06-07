@@ -166,14 +166,14 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     # final_map = final_map.resize((dataset.width, dataset.height))
                     # final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
 
-            hg_probs = np.array(hg_probs)
-            final_probs = np.array(final_probs)
+            #hg_probs = np.array(hg_probs)
+            #final_probs = np.array(final_probs)
 
-            hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
-            final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
+            #hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
+            #final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
 
-    print("CD Branch dice: {:.4f} Hg dice: {:.4f} Final dice: {:.4f}"
-          .format(cd_branch_acc.avg, hungarian_branch_acc.avg, final_acc.avg))
+    print("CD Branch dice: {:.4f}"
+          .format(cd_branch_acc.avg))
 
 
 if __name__ == '__main__':
