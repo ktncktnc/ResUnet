@@ -102,11 +102,15 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                 # Colorize instance segmentation map and save
                 masks1 = save_mask_and_contour(
                     x[i, 0, ...], x[i, 1, ...], NUCLEI_PALETTE,
-                    os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)))\
+                    os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
+                    (dataset.width, dataset.height)
+                )\
                     .astype(int)
                 masks2 = save_mask_and_contour(
                     y[i, 0, ...], y[i, 1, ...], NUCLEI_PALETTE,
-                    os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename))).\
+                    os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
+                    (dataset.width, dataset.height)
+                ).\
                     astype(int)
 
                 masks1 = torch.from_numpy(masks1)
@@ -123,6 +127,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
 
                 # Save CM from CD branch
                 cm_im = Image.fromarray((cm[i, 0, ...] * 255).astype(np.uint8), mode='P')
+                cm_im = cm_im.resize((dataset.width, dataset.height))
                 cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
                 # Calculate final CM
@@ -138,6 +143,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
 
                 final_map = (final_prob >= threshold) * 255
                 final_map = Image.fromarray(final_map.astype(np.uint8), mode='P')
+                final_map = final_map.resize((dataset.width, dataset.height))
                 final_map.save(os.path.join(final_cd_path, "final_{filename}.png".format(filename=filename)))
 
             hg_probs = np.array(hg_probs)
