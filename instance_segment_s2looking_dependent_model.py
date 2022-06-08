@@ -148,6 +148,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                     # Save CM from CD branch
+                    full_cm = cv2.resize(full_cm, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
                     cv2.imwrite(
                         os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
                         full_cm*255
