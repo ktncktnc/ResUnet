@@ -1,4 +1,6 @@
 import os
+
+import cv2
 import torch
 import argparse
 import numpy as np
@@ -146,9 +148,13 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                     # Save CM from CD branch
-                    cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
-                    cm_im = cm_im.resize((dataset.width, dataset.height))
-                    cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
+                    cv2.imwrite(
+                        os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
+                        full_cm*255
+                    )
+                    # cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
+                    # cm_im = cm_im.resize((dataset.width, dataset.height))
+                    # cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
 
                     # # Calculate final CM
                     # cm_x_probs = np.multiply(full_x_probs, hg_map)
