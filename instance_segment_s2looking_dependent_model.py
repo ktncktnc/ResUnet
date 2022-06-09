@@ -18,7 +18,7 @@ from utils.images import *
 from utils.hungarian import *
 
 
-def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
+def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
          cm_weights=None):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
@@ -50,7 +50,7 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
     if not os.path.exists(final_cd_path):
         os.makedirs(final_cd_path)
 
-    model = DependentResUnetMultiDecoder().cuda()
+    model = DependentResUnetMultiDecoder().to(device)
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
@@ -87,9 +87,9 @@ def main(hp, mode, weights, split, trained_path, saved_path, threshold=0.5, batc
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
-            cd_i1 = data['x'].cuda()
-            cd_i2 = data['y'].cuda()
-            cd_labels = data['mask'].cuda()
+            cd_i1 = data['x'].to(device)
+            cd_i2 = data['y'].to(device)
+            cd_labels = data['mask'].to(device)
             outputs = model(cd_i1, cd_i2)
 
             cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
@@ -194,8 +194,12 @@ if __name__ == '__main__':
     parser.add_argument(
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
     )
+    parser.add_argument("--device", default="cuda:0", type=str, help="Device ID")
+
 
     args = parser.parse_args()
+
+    device = torch.device(args.device)
 
     weights = [1.0]
     if int(args.mode) == 1:
@@ -204,4 +208,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize)
+    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize)

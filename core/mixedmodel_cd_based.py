@@ -276,6 +276,23 @@ class DependentResUnetMultiDecoder(nn.Module):
                     for param in b.parameters():
                         param.require_grad = trainable
 
+    def change_segmentation_branch_trainable(self, trainable=True):
+        self.change_encoder_trainable(trainable)
+
+        for m in self.segment_bridge.children():
+            for n in m.children():
+                for k in n.children():
+                    for p in k.parameters():
+                        p.requires_grad = False
+
+        for i, block in enumerate(self.segment_decoder):
+            for m in block.children():
+                for n in m.parameters():
+                    n.require_grad = False
+
+        for param in self.segment_decoder_out.parameters():
+            param.requires_grad = trainable
+
     def load_segmentation_weight(self, state_dicts: Mapping[str, Any]):
         for k in list(state_dicts.keys()):
             if k.startswith("siamese"):
