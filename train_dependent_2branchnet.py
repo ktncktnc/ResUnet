@@ -13,7 +13,7 @@ import argparse
 import os
 import ssl
 
-from utils.metrics import TrackingMetric, Dice
+from utils.metrics import TrackingMetric
 
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
@@ -31,12 +31,13 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     # Model
     resnet = models.resnet50(pretrained=True)
     model = DependentResUnetMultiDecoder(resnet=resnet).to(device)
+    model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
 
     # Optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=hpconfig.lr)
+    optimizer = torch.optim.Adam(model.get_siamese_parameter(), lr=hpconfig.lr)
 
     # decay LR
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
@@ -44,7 +45,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     training_metrics = torchmetrics.MetricCollection(
         {
             "Loss": TrackingMetric(name="loss"),
-            "Dice": Dice(),
+            "Dice": torchmetrics.Dice(num_classes =2, average=None),
             "F1Score": torchmetrics.F1Score()
         },
         prefix='train_'
@@ -130,9 +131,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             loss = cd_loss
 
             training_metrics(
-                dice_preds=outputs['cm'].cpu(),
                 preds=outputs['cm'].cpu(),
-                dice_target=cd_labels.type(torch.IntTensor).cpu(),
                 target=cd_labels.type(torch.IntTensor).cpu(),
                 value={
                     "loss": loss.cpu()
@@ -211,9 +210,9 @@ def validation(
         cd_loss = criterion(outputs['cm'], cd_labels)
 
         validation_metrics(
-            dice_preds=outputs['cm'].cpu(),
+            #dice_preds=outputs['cm'].cpu(),
             preds=outputs['cm'].cpu(),
-            dice_target=cd_labels.type(torch.IntTensor).cpu(),
+            #dice_target=cd_labels.type(torch.IntTensor).cpu(),
             target=cd_labels.type(torch.IntTensor).cpu(),
             value={
                 "loss": cd_loss.cpu()

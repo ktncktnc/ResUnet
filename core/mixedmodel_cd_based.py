@@ -279,16 +279,12 @@ class DependentResUnetMultiDecoder(nn.Module):
     def change_segmentation_branch_trainable(self, trainable=True):
         self.change_encoder_trainable(trainable)
 
-        for m in self.segment_bridge.children():
-            for n in m.children():
-                for k in n.children():
-                    for p in k.parameters():
-                        p.requires_grad = False
+        for m in self.segment_bridge.parameters():
+            m.requires_grad = False
 
         for i, block in enumerate(self.segment_decoder):
-            for m in block.children():
-                for n in m.parameters():
-                    n.require_grad = False
+            for m in block.parameters():
+                m.requires_grad = trainable
 
         for param in self.segment_decoder_out.parameters():
             param.requires_grad = trainable
@@ -299,3 +295,15 @@ class DependentResUnetMultiDecoder(nn.Module):
                 del state_dicts[k]
 
         self.load_state_dict(state_dicts, strict=False)
+
+    def get_siamese_parameter(self):
+        params = []
+        for i, block in enumerate(self.siamese_decoder, 0):
+            for n in block.children():
+                # print(n)
+                params = params + list(n.parameters())
+
+        params = params + list(self.siamese_bridge.parameters())
+        params = params + list(self.siamese_decoder_out.parameters())
+
+        return params
