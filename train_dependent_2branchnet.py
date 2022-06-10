@@ -131,7 +131,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             loss = cd_loss
 
             training_metrics(
-                preds=outputs['cm'].cpu(),
+                preds=torch.argmax(outputs['cm'].cpu(), dim=1),
                 target=cd_labels.type(torch.IntTensor).cpu(),
                 value={
                     "loss": loss.cpu()
@@ -211,7 +211,7 @@ def validation(
 
         validation_metrics(
             #dice_preds=outputs['cm'].cpu(),
-            preds=outputs['cm'].cpu(),
+            preds=torch.argmax(outputs['cm'].cpu(), dim=1),
             #dice_target=cd_labels.type(torch.IntTensor).cpu(),
             target=cd_labels.type(torch.IntTensor).cpu(),
             value={
