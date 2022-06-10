@@ -45,7 +45,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     training_metrics = torchmetrics.MetricCollection(
         {
             "Loss": TrackingMetric(name="loss"),
-            "Dice": torchmetrics.Dice(num_classes =2, average=None),
+            "Dice": torchmetrics.Dice(),
             "F1Score": torchmetrics.F1Score()
         },
         prefix='train_'
@@ -131,7 +131,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             loss = cd_loss
 
             training_metrics(
-                preds=torch.argmax(outputs['cm'].cpu(), dim=1),
+                preds=outputs['cm'].cpu(),
                 target=cd_labels.type(torch.IntTensor).cpu(),
                 value={
                     "loss": loss.cpu()
@@ -211,7 +211,7 @@ def validation(
 
         validation_metrics(
             #dice_preds=outputs['cm'].cpu(),
-            preds=torch.argmax(outputs['cm'].cpu(), dim=1),
+            preds=outputs['cm'].cpu(),
             #dice_target=cd_labels.type(torch.IntTensor).cpu(),
             target=cd_labels.type(torch.IntTensor).cpu(),
             value={
