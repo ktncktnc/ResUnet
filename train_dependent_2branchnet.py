@@ -86,7 +86,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # get data
     # cd
-    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train")
+    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train_cr")
     cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val")
     cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test")
 

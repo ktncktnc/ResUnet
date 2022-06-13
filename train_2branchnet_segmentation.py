@@ -90,7 +90,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     # cd
     alb_dataset_train = AlabamaDataset(hpconfig.dset1_dir, "train")
     alb_dataset_val = AlabamaDataset(hpconfig.dset1_dir, "test")
-    s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train")
+    s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train_cr")
     s2l_dataset_val = S2LookingAllMask(hpconfig.dset2_dir, "test")
 
     alb_train_dataloader = DataLoader(
