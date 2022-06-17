@@ -307,3 +307,20 @@ class DependentResUnetMultiDecoder(nn.Module):
         params = params + list(self.siamese_decoder_out.parameters())
 
         return params
+
+    def get_segmentation_parameter(self):
+        params = []
+        for i, block in enumerate(self.segment_decoder, 0):
+            params = params + list(block.parameters())
+
+        params = params + list(self.segment_bridge.parameters())
+        params = params + list(self.segment_decoder_out.parameters())
+
+        return params
+
+    def get_encoder_parameter(self):
+        params = []
+        params = params + list(self.input_block.parameters())
+        params = params + list(self.encoder.parameters())
+
+        return params

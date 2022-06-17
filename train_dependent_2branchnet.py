@@ -37,10 +37,14 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
 
     # Optimizer
-    optimizer = torch.optim.Adam(model.get_siamese_parameter(), lr=hpconfig.lr)
+    optimizer = torch.optim.Adam([
+        {'params': model.get_siamese_parameter()},
+        {'params': model.get_segmentation_parameter(), 'lr': 1e-6},
+        {'params': model.get_encoder_parameter(), 'lr': 1e-6},
+    ], lr=1e-3)
 
     # decay LR
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     training_metrics = torchmetrics.MetricCollection(
         {
