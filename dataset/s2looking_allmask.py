@@ -167,9 +167,9 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             mask2[0, ...] = transformed['mask2']
             mask2[1, ...] = transformed['border_mask2']
 
-            return dict(x=image1.float(), y=image2.float(), mask=mask.float(), mask1=mask1.float(), mask2=mask2.float())
+            return dict(x=image1.float(), y=image2.float(), mask=mask.float(), mask1=mask1.float(), mask2=mask2.float(), files=files)
         else:
-            return dict(x=image1.float(), y=image2.float())
+            return dict(x=image1.float(), y=image2.float(), files=files)
 
     def get_resized_coord(self, divide):
         row = int(divide/self.divide)

@@ -1,8 +1,10 @@
 import os
+import cv2
 import torch
 import argparse
 import numpy as np
 import albumentations as albums
+import torchmetrics
 from albumentations.pytorch import ToTensorV2
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from utils import metrics
@@ -17,7 +19,7 @@ from utils.hungarian import *
 
 
 def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
-         cm_weights=None, device=torch.device("cuda"), dataset_split=2):
+         cm_weights=None, device=torch.device("cuda"), dataset_split=2, cd=True):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
     assert (0 <= mode < 3)
@@ -53,6 +55,13 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
     model.load_segmentation_weight(checkpoint["state_dict"])
     model.eval()
 
+    training_metrics = torchmetrics.MetricCollection(
+        {
+            "Dice": torchmetrics.Dice(),
+        },
+        prefix='test_'
+    )
+
     transform = albums.Compose([
         albums.Resize(256, 256),
         albums.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
@@ -67,7 +76,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=True)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=False)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
@@ -94,6 +103,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
+            files = data['files']
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
             #cd_labels = data['mask'].cuda()
@@ -145,14 +155,22 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
             #         masks1 = torch.from_numpy(masks1)
             #         masks2 = torch.from_numpy(masks2)
             #
-            #         # Hungarian algorithm
-            #         hg_map = change_detection_map(masks1, masks2, img_height, img_width)
-            #         hg_img = (hg_map * 255).astype(np.uint8)
-            #
-            #         mask_color_1 = convert_to_color_map(masks1, img_width, img_height)
-            #         mask_color_2 = convert_to_color_map(masks2, img_width, img_height)
-            #         plot_and_save(mask_color_1, mask_color_2, hg_img,
-            #                       os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
+                    # Hungarian algorithm
+                    if cd:
+                        hg_map = change_detection_map(masks1, masks2, dataset.height, dataset.width)
+                        gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
+                        training_metrics(
+                            target=torch.from_numpy(gt_cd),
+                            preds=hg_map
+                        )
+                        hg_img = (hg_map * 255).astype(np.uint8)
+
+                        mask_color_1 = convert_to_color_map(masks1, dataset.width, dataset.height)
+                        mask_color_2 = convert_to_color_map(masks2, dataset.width, dataset.height)
+                        cv2.imwrite(os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)),
+                                    hg_img)
+                        # plot_and_save(mask_color_1, mask_color_2, hg_img,
+                        #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
             #
             #         # Save CM from CD branch
             #         #cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
@@ -179,6 +197,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
             #hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
             #final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
 
+    values = training_metrics.compute()
+    print(values)
     print("CD Branch dice: {:.4f} Hg dice: {:.4f} Final dice: {:.4f}"
           .format(cd_branch_acc.avg, hungarian_branch_acc.avg, final_acc.avg))
 
@@ -186,6 +206,11 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Validate ResUnet")
     parser.add_argument("--mode", default=1)
+
+    parser.add_argument('--cd', action='store_true')
+    parser.add_argument('--no-cd', dest='cd', action='store_false')
+    parser.set_defaults(cd=True)
+
     parser.add_argument("--pretrain", type=str)
     parser.add_argument("--savepath", type=str)
     parser.add_argument("--threshold", default=0.5, type=float)
@@ -207,4 +232,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
     device = torch.device(args.device)
     hp = HParam(args.config)
-    main(hp, int(args.mode), args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, [0.3, 0.7], device, args.dset_divide)
+    main(hp, int(args.mode), args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, [0.3, 0.7], device, args.dset_divide, args.cd)
