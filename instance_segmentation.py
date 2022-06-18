@@ -152,11 +152,11 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                         (dataset.width, dataset.height)
                     ).astype(int)
 
-            #         masks1 = torch.from_numpy(masks1)
-            #         masks2 = torch.from_numpy(masks2)
-            #
                     # Hungarian algorithm
                     if cd:
+                        masks1 = torch.from_numpy(masks1)
+                        masks2 = torch.from_numpy(masks2)
+
                         hg_map = change_detection_map(masks1, masks2, dataset.height, dataset.width)
                         gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
                         training_metrics(
