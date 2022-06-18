@@ -157,7 +157,10 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                         masks2 = torch.from_numpy(masks2)
 
                         hg_map = change_detection_map(masks1, masks2, dataset.height, dataset.width)
+                        print(hg_map.shape)
                         gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
+                        print(gt_cd.shape)
+
                         training_metrics(
                             target=torch.from_numpy(gt_cd),
                             preds=torch.from_numpy(hg_map)
