@@ -126,7 +126,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                 # Get file name
                 files = dataset.files[idx * batch_size + i]
                 divide = files['divide']
-                print("divide = " + divide)
+                print("divide = " + str(divide))
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
                 filename = os.path.basename(files['image1'])[:-4]
 
