@@ -103,7 +103,6 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
-            files = data['files']
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
             #cd_labels = data['mask'].cuda()
@@ -125,10 +124,10 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
             for i in range(x.shape[0]):
                 # Get file name
-                filename = dataset.files[idx * batch_size + i]
-                divide = filename['divide']
+                files = dataset.files[idx * batch_size + i]
+                divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
-                filename = os.path.basename(filename['image1'])[:-4]
+                filename = os.path.basename(files['image1'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
@@ -158,7 +157,6 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                         masks2 = torch.from_numpy(masks2)
 
                         hg_map = change_detection_map(masks1, masks2, dataset.height, dataset.width)
-                        print(files["mask"])
                         gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
                         training_metrics(
                             target=torch.from_numpy(gt_cd),
