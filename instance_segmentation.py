@@ -57,7 +57,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
     training_metrics = torchmetrics.MetricCollection(
         {
-            "Dice": torchmetrics.Dice(),
+            "Dice": torchmetrics.Dice(average='none'),
         },
         prefix='test_'
     )
