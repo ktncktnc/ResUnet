@@ -160,7 +160,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                         gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
                         training_metrics(
                             target=torch.from_numpy(gt_cd),
-                            preds=hg_map
+                            preds=torch.from_numpy(hg_map)
                         )
                         hg_img = (hg_map * 255).astype(np.uint8)
 
