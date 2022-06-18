@@ -165,8 +165,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
                         hg_img = (hg_map * 255).astype(np.uint8)
 
-                        mask_color_1 = convert_to_color_map(masks1, dataset.width, dataset.height)
-                        mask_color_2 = convert_to_color_map(masks2, dataset.width, dataset.height)
+                        # mask_color_1 = convert_to_color_map(masks1, dataset.width, dataset.height)
+                        # mask_color_2 = convert_to_color_map(masks2, dataset.width, dataset.height)
                         cv2.imwrite(os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)),
                                     hg_img)
                         # plot_and_save(mask_color_1, mask_color_2, hg_img,
