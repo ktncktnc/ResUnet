@@ -7,6 +7,9 @@ import numpy as np
 import albumentations as A
 import torchmetrics
 from albumentations.pytorch import ToTensorV2
+from torchvision import models
+
+from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from core.res_unet import ResUnet
 from dataset.s2looking_allmask import S2LookingAllMask
 from utils import metrics
@@ -51,8 +54,9 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
 
     # if not os.path.exists(masks_save_path):
     #     os.makedirs(masks_save_path)
-        
-    model = ResUnet(3, mode + 1).cuda()
+
+    resnet = models.resnet34(pretrained=True)
+    model = DependentResUnetMultiDecoder(resnet=resnet).cuda()
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
