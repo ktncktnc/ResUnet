@@ -197,7 +197,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def segment_forward(self, x, pools, cm):
+    def segment_forward(self, x, pools=None, cm=None):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
