@@ -72,7 +72,11 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2()
     ],
-        additional_targets={'image0': 'image'}
+        additional_targets={'image0': 'image',
+                    'mask1': 'mask',
+                    'mask2': 'mask',
+                    'border_mask1': 'mask',
+                    'border_mask2': 'mask'}
     )
 
     dataset = S2LookingAllMask(hp.cd_dset_dir, "test", transform, 2, without_mask=False)
