@@ -3,13 +3,11 @@ import torch.nn as nn
 from torchvision import models
 from collections import OrderedDict
 from core.parts import *
-from core.modules import ReverseLayerF
 
 
 class DependentResUnetMultiDecoder(nn.Module):
     def __init__(self, input_channel=3, segment_o_channel=2, cd_o_channel=1, resnet=None):
         super().__init__()
-        self.domain_classifier = None
         self.input_pool = None
         self.input_block = None
         self.encoder = None
@@ -29,14 +27,13 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.cd_o_channel = cd_o_channel
 
         if resnet is None:
-            resnet = models.resnet50()
+            resnet = models.resnet34()
         self.resnet = resnet
 
         self.create_input_block()
         self.create_encoder()
         self.create_siamese_decoder()
         self.create_segment_decoder()
-        self.create_domain_classifier()
 
     def create_input_block(self):
         # Input block
@@ -81,18 +78,18 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         # Working with input blocks
         siamese_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/2) + int(self.encoded_channels[0]/4),
-            out_channels=int(self.encoded_channels[0]/2),
-            up_conv_in_channels=int(self.encoded_channels[0]),
-            up_conv_out_channels=int(self.encoded_channels[0]/2)
-        ))
+            in_channels=self.encoded_channels[1] + self.encoded_channels[0],
+            out_channels=self.encoded_channels[1],
+            up_conv_in_channels=self.encoded_channels[0],
+            up_conv_out_channels=self.encoded_channels[1])
+        )
 
         # Working with input img
         siamese_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/4) + self.input_channel,
-            out_channels=int(self.encoded_channels[0]/4),
-            up_conv_in_channels=int(self.encoded_channels[0]/2),
-            up_conv_out_channels=int(self.encoded_channels[0]/4)
+            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel),
+            out_channels=int(self.encoded_channels[1] / 4),
+            up_conv_in_channels=self.encoded_channels[1],
+            up_conv_out_channels=int(self.encoded_channels[1] / 2)
         ))
 
         self.siamese_decoder = nn.ModuleList(siamese_decoder)
@@ -103,7 +100,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.siamese_fusing_blocks = nn.ModuleList(siamese_fusing_blocks)
 
         self.siamese_decoder_out = nn.Sequential(
-            nn.Conv2d(int(self.encoded_channels[0]/4), self.cd_o_channel, kernel_size=1, stride=1),
+            nn.Conv2d(int(self.encoded_channels[1] / 4), self.cd_o_channel, kernel_size=1, stride=1),
             nn.Sigmoid()
         )
 
@@ -135,29 +132,6 @@ class DependentResUnetMultiDecoder(nn.Module):
             nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
             nn.Sigmoid()
         )
-
-    def create_domain_classifier(self, domain_n_classes=2):
-        self.domain_classifier = nn.Sequential()
-        self.domain_classifier.add_module("d_avgpool", nn.AdaptiveAvgPool2d((1, 1)))
-        self.domain_classifier.add_module("d_flat", nn.Flatten())
-
-        for i in range(1, len(self.encoded_channels)):
-            self.domain_classifier.add_module("d_fc{i}".format(i=i),
-                                              nn.Linear(self.encoded_channels[-i], self.encoded_channels[-i - 1]))
-            self.domain_classifier.add_module("d_bn{i}".format(i=i), nn.BatchNorm1d(self.encoded_channels[-i - 1]))
-            self.domain_classifier.add_module("d_relu{i}".format(i=i), nn.ReLU(True))
-
-        self.domain_classifier.add_module("d_fc4",
-                                          nn.Linear(int(self.encoded_channels[0]), int(self.encoded_channels[0] / 4)))
-        self.domain_classifier.add_module("d_bn4", nn.BatchNorm1d(int(self.encoded_channels[0] / 4)))
-        self.domain_classifier.add_module("d_relu4", nn.ReLU(True))
-
-        # self.domain_classifier.add_module("d_fc5", nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/16)))
-        # self.domain_classifier.add_module("d_bn5", nn.BatchNorm1d(int(self.encoded_channels[0]/16)))
-        # self.domain_classifier.add_module("d_relu5", nn.ReLU(True))
-
-        self.domain_classifier.add_module("d_out", nn.Linear(int(self.encoded_channels[0] / 4), int(domain_n_classes)))
-        self.domain_classifier.add_module("d_softmax", nn.LogSoftmax())
 
     def input_process(self, x):
         x1 = self.input_block(x)
@@ -223,34 +197,15 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         return x
 
-    def domain_classify(self, x=None, encoded_feature=None, alpha=0.5):
-        assert (x is not None) or (encoded_feature is not None)
-        if encoded_feature is None:
-            x, pools = self.encode(x)
-        else:
-            x = encoded_feature
-        x = self.segment_bridge(x)
-
-        x = ReverseLayerF.apply(x, alpha)
-        return self.domain_classifier(x)
-
-    def segment_forward(self, x, domain_classify=True, alpha=None, pools=None, cm=None):
+    def segment_forward(self, x, pools, cm):
         """
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
-        assert (pools is None) == (cm is None)
-        if pools is None:
-            x, pools = self.encode(x)
-        else:
-            pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
+        pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
         x = self.segment_bridge(x)
         a = self.segment_decode(x, pools)
         a = self.segment_decoder_out(a)
-
-        if domain_classify:
-            d = self.domain_classify(encoded_feature=x, alpha=alpha)
-            return a, d
         return a
 
     def forward(self, x, y):
@@ -279,3 +234,24 @@ class DependentResUnetMultiDecoder(nn.Module):
                 for b in a.children():
                     for param in b.parameters():
                         param.require_grad = trainable
+
+    def on_load_checkpoint(self, checkpoint: dict) -> None:
+        state_dict = checkpoint["state_dict"]
+        model_state_dict = self.state_dict()
+        is_changed = False
+        for k in state_dict:
+            if k in model_state_dict:
+                if state_dict[k].shape != model_state_dict[k].shape:
+                    print(f"Skip loading parameter: {k}, "
+                                f"required shape: {model_state_dict[k].shape}, "
+                                f"loaded shape: {state_dict[k].shape}")
+                    state_dict[k] = model_state_dict[k]
+                    is_changed = True
+            else:
+                print(f"Dropping parameter {k}")
+                is_changed = True
+
+        if is_changed:
+            checkpoint.pop("optimizer_states", None)
+
+        return state_dict
