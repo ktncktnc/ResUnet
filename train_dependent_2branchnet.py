@@ -31,7 +31,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     # Model
     resnet = models.resnet50(pretrained=True)
     model = DependentResUnetMultiDecoder(resnet=resnet).to(device)
-    model.change_segmentation_branch_trainable(False)
+    # model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
