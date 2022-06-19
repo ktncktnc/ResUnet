@@ -116,19 +116,25 @@ class DependentResUnetMultiDecoder(nn.Module):
                 UpBlockForUNetWithResNet50(self.encoded_channels[-i], self.encoded_channels[-(i + 1)]))
 
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/2) + int(self.encoded_channels[0]/4),
-            out_channels=int(self.encoded_channels[0]/2),
-            up_conv_in_channels=int(self.encoded_channels[0]),
-            up_conv_out_channels=int(self.encoded_channels[0]/2)
-        ))
+            in_channels=self.encoded_channels[1] + self.encoded_channels[0],
+            out_channels=self.encoded_channels[1],
+            up_conv_in_channels=self.encoded_channels[0],
+            up_conv_out_channels=self.encoded_channels[1])
+        )
 
         # Working with input img
         segment_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/4) + self.input_channel,
-            out_channels=int(self.encoded_channels[0]/4),
-            up_conv_in_channels=int(self.encoded_channels[0]/2),
-            up_conv_out_channels=int(self.encoded_channels[0]/4)
+            in_channels=int(self.encoded_channels[1] / 2 + self.input_channel + 1),
+            out_channels=int(self.encoded_channels[1] / 4),
+            up_conv_in_channels=self.encoded_channels[1],
+            up_conv_out_channels=int(self.encoded_channels[1] / 2)
         ))
+
+        self.segment_decoder = nn.ModuleList(segment_decoder)
+        self.segment_decoder_out = nn.Sequential(
+            nn.Conv2d(int(self.encoded_channels[1] / 4), self.segment_o_channel, kernel_size=1, stride=1),
+            nn.Sigmoid()
+        )
 
         self.segment_decoder = nn.ModuleList(segment_decoder)
         self.segment_decoder_out = nn.Sequential(
@@ -140,29 +146,23 @@ class DependentResUnetMultiDecoder(nn.Module):
         self.domain_classifier = nn.Sequential()
         self.domain_classifier.add_module("d_avgpool", nn.AdaptiveAvgPool2d((1, 1)))
         self.domain_classifier.add_module("d_flat", nn.Flatten())
-        
-        # for i in range(1, len(self.encoded_channels)):
-        #     self.domain_classifier.add_module("d_fc{i}".format(i=i), nn.Linear(self.encoded_channels[-i], self.encoded_channels[-i - 1]))
-        #     self.domain_classifier.add_module("d_bn{i}".format(i=i), nn.BatchNorm1d(self.encoded_channels[-i - 1]))
-        #     self.domain_classifier.add_module("d_relu{i}".format(i=i), nn.ReLU(True))
 
-        self.domain_classifier.add_module("d_fc1", nn.Linear(2048, 512))
-        self.domain_classifier.add_module("d_bn1", nn.BatchNorm1d(512))
-        self.domain_classifier.add_module("d_relu1", nn.ReLU(True))
+        for i in range(1, len(self.encoded_channels)):
+            self.domain_classifier.add_module("d_fc{i}".format(i=i),
+                                              nn.Linear(self.encoded_channels[-i], self.encoded_channels[-i - 1]))
+            self.domain_classifier.add_module("d_bn{i}".format(i=i), nn.BatchNorm1d(self.encoded_channels[-i - 1]))
+            self.domain_classifier.add_module("d_relu{i}".format(i=i), nn.ReLU(True))
 
-        self.domain_classifier.add_module("d_fc2", nn.Linear(512, 256))
-        self.domain_classifier.add_module("d_bn2", nn.BatchNorm1d(256))
-        self.domain_classifier.add_module("d_relu2", nn.ReLU(True))
-
-        self.domain_classifier.add_module("d_fc3", nn.Linear(256, 64))
-        self.domain_classifier.add_module("d_bn3", nn.BatchNorm1d(64))
-        self.domain_classifier.add_module("d_relu3", nn.ReLU(True))
+        self.domain_classifier.add_module("d_fc4",
+                                          nn.Linear(int(self.encoded_channels[0]), int(self.encoded_channels[0] / 4)))
+        self.domain_classifier.add_module("d_bn4", nn.BatchNorm1d(int(self.encoded_channels[0] / 4)))
+        self.domain_classifier.add_module("d_relu4", nn.ReLU(True))
 
         # self.domain_classifier.add_module("d_fc5", nn.Linear(int(self.encoded_channels[0]/4), int(self.encoded_channels[0]/16)))
         # self.domain_classifier.add_module("d_bn5", nn.BatchNorm1d(int(self.encoded_channels[0]/16)))
         # self.domain_classifier.add_module("d_relu5", nn.ReLU(True))
 
-        self.domain_classifier.add_module("d_out", nn.Linear(int(64), int(domain_n_classes)))
+        self.domain_classifier.add_module("d_out", nn.Linear(int(self.encoded_channels[0] / 4), int(domain_n_classes)))
         self.domain_classifier.add_module("d_softmax", nn.LogSoftmax())
 
     def input_process(self, x):

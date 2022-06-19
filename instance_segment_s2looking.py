@@ -58,7 +58,7 @@ def main(hp, mode, weights, trained_path, saved_path, threshold=0.5, batch_size=
     resnet = models.resnet34(pretrained=True)
     model = DependentResUnetMultiDecoder(resnet=resnet).cuda()
     checkpoint = torch.load(trained_path)
-    model.load_state_dict(checkpoint["state_dict"])
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
     model.eval()
 
     if save_sub_mask:
