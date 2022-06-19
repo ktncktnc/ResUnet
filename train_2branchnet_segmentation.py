@@ -48,7 +48,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=hpconfig.lr)
 
     # decay LR
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     training_metrics = torchmetrics.MetricCollection(
         {
