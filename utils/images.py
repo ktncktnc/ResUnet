@@ -6,11 +6,15 @@ import random
 import torch
 from matplotlib import pyplot as plt
 
-def save_mask_and_contour(mask, contour, palette, filepath):
+def save_mask_and_contour(mask, contour, palette, filepath, new_size=None):
     seed = ((mask * (1 - contour)) > 0.5).astype(np.uint8)
     labels = label_watershed(mask, seed).astype(np.uint8)
 
     im = Image.fromarray(labels, mode='P')
+    if new_size is not None:
+        im = im.resize((new_size))
+
+    labels = np.array(im)
     im.putpalette(palette)
     im.save(filepath)
 
