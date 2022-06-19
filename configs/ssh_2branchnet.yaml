@@ -1,5 +1,6 @@
 dset1_dir: "/root/alabama/alabama"
 dset2_dir: "/root/resunet/data"
+cd_dset_dir: "/root/resunet/data"
 log: "logs"
 logging_step: 100
 validation_interval: 3000 # Save and valid have same interval
