@@ -136,12 +136,6 @@ class DependentResUnetMultiDecoder(nn.Module):
             nn.Sigmoid()
         )
 
-        self.segment_decoder = nn.ModuleList(segment_decoder)
-        self.segment_decoder_out = nn.Sequential(
-            nn.Conv2d(int(self.encoded_channels[0]/4), self.segment_o_channel, kernel_size=1, stride=1),
-            nn.Sigmoid()
-        )
-
     def create_domain_classifier(self, domain_n_classes=2):
         self.domain_classifier = nn.Sequential()
         self.domain_classifier.add_module("d_avgpool", nn.AdaptiveAvgPool2d((1, 1)))
