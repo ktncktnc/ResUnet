@@ -202,6 +202,9 @@ class DependentResUnetMultiDecoder(nn.Module):
         img_features: [batch_size, channels, width, height]
         cm: [batch_size, 1, width, height]
         """
+        if pools is None:
+            x, pools = self.encode(x)
+
         pools['layer_0'] = torch.cat([pools['layer_0'], cm], 1)
         x = self.segment_bridge(x)
         a = self.segment_decode(x, pools)
@@ -209,6 +212,7 @@ class DependentResUnetMultiDecoder(nn.Module):
         return a
 
     def forward(self, x, y):
+
         output = self.siamese_forward(x, y)
         cm = output['cm']
 
