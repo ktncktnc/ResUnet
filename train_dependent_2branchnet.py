@@ -128,7 +128,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             cd_i2 = data['y'].to(device)
             cd_labels = data['mask'].to(device)
 
-            outputs = model(cd_i1, cd_i2)
+            outputs = model.siamese_forward(cd_i1, cd_i2)
 
             # CD loss
             cd_loss = criterion(outputs['cm'], cd_labels)
@@ -210,7 +210,7 @@ def validation(
         i2 = data['y'].to(device)
         cd_labels = data['mask'].to(device)
 
-        outputs = model(i1, i2)
+        outputs = model.siamese_forward(i1, i2)
         cd_loss = criterion(outputs['cm'], cd_labels)
 
         validation_metrics(

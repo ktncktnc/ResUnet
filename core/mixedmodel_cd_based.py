@@ -91,7 +91,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         # Working with input img
         siamese_decoder.append(UpBlockForUNetWithResNet50(
-            in_channels=int(self.encoded_channels[0]/4) + 1,
+            in_channels=int(self.encoded_channels[0]/4) + 3,
             out_channels=int(self.encoded_channels[0]/4),
             up_conv_in_channels=int(self.encoded_channels[0]/2),
             up_conv_out_channels=int(self.encoded_channels[0]/4)
