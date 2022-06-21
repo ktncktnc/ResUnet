@@ -123,7 +123,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
                 full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
-                # full_label[x1:x2, y1:y2] =
+
                 full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
                 full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
                 full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
@@ -155,8 +155,11 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     # plot_and_save(mask_color_1, mask_color_2, hg_img,
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                    cm_img = cv2.resize(full_cm, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    cm_img = Image.fromarray(full_cm, mode='P')
+                    cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))
+
                     gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
+
                     training_metrics(
                         target=torch.from_numpy(gt_cd),
                         preds=torch.from_numpy(cm_img)
