@@ -91,8 +91,8 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     # get data
     # cd
     cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train_cr")
-    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val")
-    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test")
+    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val_cr")
+    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test_cr")
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
