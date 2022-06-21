@@ -37,11 +37,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
 
     # Optimizer
-    optimizer = torch.optim.Adam([
-        {'params': model.get_siamese_parameter()},
-        {'params': model.get_segmentation_parameter(), 'lr': 1e-6},
-        {'params': model.get_encoder_parameter(), 'lr': 1e-6},
-    ], lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # decay LR
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
@@ -131,11 +127,11 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
             outputs = model.siamese_forward(cd_i1, cd_i2)
 
             # CD loss
-            cd_loss = criterion(outputs['cm'], cd_labels)
+            cd_loss = criterion(outputs, cd_labels)
             loss = cd_loss
 
             training_metrics(
-                preds=outputs['cm'].cpu(),
+                preds=outputs.cpu(),
                 target=cd_labels.type(torch.IntTensor).cpu(),
                 value={
                     "loss": loss.cpu()
@@ -211,11 +207,11 @@ def validation(
         cd_labels = data['mask'].to(device)
 
         outputs = model.siamese_forward(i1, i2)
-        cd_loss = criterion(outputs['cm'], cd_labels)
+        cd_loss = criterion(outputs, cd_labels)
 
         validation_metrics(
             #dice_preds=outputs['cm'].cpu(),
-            preds=outputs['cm'].cpu(),
+            preds=outputs.cpu(),
             #dice_target=cd_labels.type(torch.IntTensor).cpu(),
             target=cd_labels.type(torch.IntTensor).cpu(),
             value={
