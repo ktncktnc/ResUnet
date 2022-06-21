@@ -5,6 +5,7 @@ import torch
 import argparse
 import numpy as np
 import albumentations as albums
+import torchmetrics
 from albumentations.pytorch import ToTensorV2
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from utils import metrics
@@ -55,6 +56,13 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
+    training_metrics = torchmetrics.MetricCollection(
+        {
+            "Dice": torchmetrics.Dice(average='none', num_classes=2),
+        },
+        prefix='test_'
+    )
+
     if save_sub_mask:
         n_masks = mode + 1
     else:
@@ -92,7 +100,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
             cd_labels = data['mask'].to(device)
             outputs = model(cd_i1, cd_i2)
 
-            cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
+            #cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
 
             cm_probs = outputs['cm'].cpu().numpy()
             x_probs = outputs['x'].cpu().numpy()
@@ -107,10 +115,10 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
             for i in range(cm.shape[0]):
                 # Get file name
-                filename = dataset.files[idx * batch_size + i]
-                divide = filename['divide']
+                files = dataset.files[idx * batch_size + i]
+                divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
-                filename = os.path.basename(filename['image1'])[:-4]
+                filename = os.path.basename(files['image1'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
@@ -135,8 +143,8 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                         (dataset.width, dataset.height)
                     ).astype(int)
 
-                    masks1 = torch.from_numpy(masks1)
-                    masks2 = torch.from_numpy(masks2)
+                    # masks1 = torch.from_numpy(masks1)
+                    # masks2 = torch.from_numpy(masks2)
 
                     # Hungarian algorithm
                     # hg_map = change_detection_map(masks1, masks2, 256, 256)
@@ -147,8 +155,17 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     # plot_and_save(mask_color_1, mask_color_2, hg_img,
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                    # Save CM from CD branch
                     cm_img = cv2.resize(full_cm, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
+                    training_metrics(
+                        target=torch.from_numpy(gt_cd),
+                        preds=torch.from_numpy(cm_img)
+                    )
+                    cd_branch_acc.update(
+                        metrics.np_dice_coeff(cm_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
+
+
+                    # Save CM from CD branch
                     cv2.imwrite(
                         os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
                         cm_img*255
@@ -179,8 +196,9 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
             #hungarian_branch_acc.update(metrics.np_dice_coeff((hg_probs >= threshold)*1, cd_labels.cpu().numpy()), hg_probs.shape[0])
             #final_acc.update(metrics.np_dice_coeff((final_probs >= threshold)*1, cd_labels.cpu().numpy()), final_probs.shape[0])
 
-    print("CD Branch dice: {:.4f}"
-          .format(cd_branch_acc.avg))
+    values = training_metrics.compute()
+    print(values)
+    print("CD Branch dice: {:.4f}".format(cd_branch_acc.avg))
 
 
 if __name__ == '__main__':
