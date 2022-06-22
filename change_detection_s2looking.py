@@ -155,9 +155,11 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     # plot_and_save(mask_color_1, mask_color_2, hg_img,
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                    cm_img = Image.fromarray(full_cm, mode='1')
-                    cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=filename)))
-                    cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
+                    #cv2.imwrite(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=filename)), full_cm * 255)
+                    cm_img = cv2.resize(full_cm, (dataset.width, dataset.height), interpolation=cv2.INTER_NEAREST)
+                    # cm_img = Image.fromarray(full_cm, mode='1')
+                    # cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=filename)))
+                    # cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
 
                     gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
                     training_metrics(
@@ -167,12 +169,11 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     cd_branch_acc.update(
                         metrics.np_dice_coeff(cm_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
 
+                    cv2.imwrite(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)), cm_img * 255)
+
 
                     # Save CM from CD branch
-                    cv2.imwrite(
-                        os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
-                        cm_img*255
-                    )
+
                     # cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
                     # cm_im = cm_im.resize((dataset.width, dataset.height))
                     # cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
