@@ -28,6 +28,9 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
     img1_save_path = os.path.join(saved_path, "img1")
     img2_save_path = os.path.join(saved_path, "img2")
 
+    prob_img1_save_path = os.path.join(saved_path, "prob_img1")
+    prob_img2_save_path = os.path.join(saved_path, "prob_img2")
+
     cd_save_path = os.path.join(saved_path, "cd")
     hungarian_cd_save_path = os.path.join(saved_path, "hungarian_cd")
     final_cd_path = os.path.join(saved_path, "final_cd")
@@ -43,6 +46,12 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
     if not os.path.exists(cd_save_path):
         os.makedirs(cd_save_path)
+
+    if not os.path.exists(prob_img1_save_path):
+        os.makedirs(prob_img1_save_path)
+
+    if not os.path.exists(prob_img2_save_path):
+        os.makedirs(prob_img1_save_path)
 
     if not os.path.exists(hungarian_cd_save_path):
         os.makedirs(hungarian_cd_save_path)
@@ -149,6 +158,11 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                         (dataset.width, dataset.height)
                     ).astype(int)
 
+                    full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+
+                    np.savetxt(os.path.join(prob_img1_save_path, "prob_{filename}.txt".format(filename=filename)), full_x_probs)
+                    np.savetxt(os.path.join(prob_img2_save_path, "prob_{filename}.txt".format(filename=filename)), full_y_probs)
                     # Hungarian algorithm
                     if cd:
                         masks1 = torch.from_numpy(masks1)
