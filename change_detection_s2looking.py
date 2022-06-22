@@ -98,17 +98,17 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
             cd_labels = data['mask'].to(device)
-            outputs = model(cd_i1, cd_i2)
+            outputs = model.siamese_forward(cd_i1, cd_i2)
 
             #cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
 
-            cm_probs = outputs['cm'].cpu().numpy()
-            x_probs = outputs['x'].cpu().numpy()
-            y_probs = outputs['y'].cpu().numpy()
+            cm_probs = outputs.cpu().numpy()
+            # x_probs = outputs['x'].cpu().numpy()
+            # y_probs = outputs['y'].cpu().numpy()
 
             cm = (cm_probs >= threshold) * 1
-            x = (x_probs >= threshold) * 1
-            y = (y_probs >= threshold) * 1
+            # x = (x_probs >= threshold) * 1
+            # y = (y_probs >= threshold) * 1
 
             hg_probs = []
             final_probs = []
@@ -120,28 +120,28 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
                 filename = os.path.basename(files['image1'])[:-4]
 
-                full_x[:, x1:x2, y1:y2] = x[i, :, ...]
-                full_y[:, x1:x2, y1:y2] = y[i, :, ...]
+                # full_x[:, x1:x2, y1:y2] = x[i, :, ...]
+                # full_y[:, x1:x2, y1:y2] = y[i, :, ...]
                 full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
                 # full_label[x1:x2, y1:y2] =
-                full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
-                full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
+                # full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
+                # full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
                 full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
 
                 if divide >= dataset.divide*dataset.divide - 1:
 
                     # Colorize instance segmentation map and save
-                    masks1 = save_mask_and_contour(
-                        full_x[0, ...], full_x[1, ...], nuclei_palette,
-                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
-                        (dataset.width, dataset.height)
-                    ).astype(int)
-
-                    masks2 = save_mask_and_contour(
-                        full_y[0, ...], full_y[1, ...], nuclei_palette,
-                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
-                        (dataset.width, dataset.height)
-                    ).astype(int)
+                    # masks1 = save_mask_and_contour(
+                    #     full_x[0, ...], full_x[1, ...], nuclei_palette,
+                    #     os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
+                    #     (dataset.width, dataset.height)
+                    # ).astype(int)
+                    #
+                    # masks2 = save_mask_and_contour(
+                    #     full_y[0, ...], full_y[1, ...], nuclei_palette,
+                    #     os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
+                    #     (dataset.width, dataset.height)
+                    # ).astype(int)
 
                     # masks1 = torch.from_numpy(masks1)
                     # masks2 = torch.from_numpy(masks2)
@@ -155,7 +155,10 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     # plot_and_save(mask_color_1, mask_color_2, hg_img,
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                    cm_img = cv2.resize(full_cm, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    cm_img = Image.fromarray(full_cm, mode='1')
+                    cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=filename)))
+                    cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
+
                     gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
                     training_metrics(
                         target=torch.from_numpy(gt_cd),
