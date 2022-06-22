@@ -51,7 +51,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
         os.makedirs(prob_img1_save_path)
 
     if not os.path.exists(prob_img2_save_path):
-        os.makedirs(prob_img1_save_path)
+        os.makedirs(prob_img2_save_path)
 
     if not os.path.exists(hungarian_cd_save_path):
         os.makedirs(hungarian_cd_save_path)
