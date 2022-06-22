@@ -3,6 +3,7 @@ import cv2
 import torch
 import argparse
 import numpy as np
+import pandas as pd
 import albumentations as albums
 import torchmetrics
 from albumentations.pytorch import ToTensorV2
@@ -161,8 +162,17 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                     full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
                     full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
 
-                    np.save(os.path.join(prob_img1_save_path, "prob_{filename}.txt".format(filename=filename)), full_x_probs)
-                    np.save(os.path.join(prob_img2_save_path, "prob_{filename}.txt".format(filename=filename)), full_y_probs)
+                    hdf_x_probs = pd.HDFStore(os.path.join(prob_img1_save_path, "prob_{filename}.hdf".format(filename=filename)))
+                    hdf_y_probs = pd.HDFStore(os.path.join(prob_img2_save_path, "prob_{filename}.hdf".format(filename=filename)))
+
+                    hdf_x_probs.append("a", pd.DataFrame(full_x_probs))
+                    hdf_y_probs.append("a", pd.DataFrame(full_y_probs))
+
+                    hdf_x_probs.close()
+                    hdf_y_probs.close()
+
+                    # np.save(os.path.join(prob_img1_save_path, "prob_{filename}.txt".format(filename=filename)), full_x_probs)
+                    # np.save(os.path.join(prob_img2_save_path, "prob_{filename}.txt".format(filename=filename)), full_y_probs)
                     # Hungarian algorithm
                     if cd:
                         masks1 = torch.from_numpy(masks1)
