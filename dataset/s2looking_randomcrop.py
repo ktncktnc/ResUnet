@@ -29,12 +29,16 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
             augment_transform=None,
             n_samples_per_image=4,
             resized_shape=(256, 256),
-            without_mask=False
+            without_mask=False,
+            with_prob=False
     ):
         # assert split in self.splits
         self.root = root
         self.resized_shape = resized_shape
         self.without_mask = without_mask
+        self.with_prob = with_prob
+        self.prob_augment = self.get_probs_transform(self.resized_shape)
+
         self.n_samples_per_image = n_samples_per_image
         self.random_crop = RandomCropSaveSegmentMask(512, 512)
 
@@ -45,6 +49,18 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
 
         self.divide_width = self.divide_height = 0
         self.load_files(root, split)
+
+    def get_probs_transform(self, resized_shape):
+        return A.Compose([
+                self.random_crop,
+                A.Resize(resized_shape[0], resized_shape[1]),
+                PerImageStandazation(),
+                ToTensorV2()
+            ],
+            additional_targets={
+                'prob1': 'image',
+                'prob2': 'image'
+            })
 
     def get_default_transform(self, split, resized_shape):
         if split == "train":
@@ -94,9 +110,11 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
             mask = os.path.join(root, split, "label", image)
             mask1 = os.path.join(root, split, "label1", image)
             mask2 = os.path.join(root, split, "label2", image)
+            prob1 = os.path.join(root, split, "prob1", "prob_" + image[:-4] + ".npz")
+            prob2 = os.path.join(root, split, "prob2", "prob_" + image[:-4] + ".npz")
 
             files += [
-                dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2)
+                dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2, prob1=prob1, prob2=prob2)
             ]
 
         # image1 = np.array(Image.open(files[0]["image1"]))
@@ -106,7 +124,7 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
         self.files = files
 
     def __len__(self) -> int:
-        return len(self.files)*self.n_samples_per_image
+        return len(self.files) * self.n_samples_per_image
 
     def __getitem__(self, idx: int) -> Dict:
         """ Returns a dict containing x, mask
@@ -114,7 +132,7 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
         build_mask: (1, h, w)
         demolish_mask: (1, h, w)
         """
-        file_idx = math.floor(idx/self.n_samples_per_image)
+        file_idx = math.floor(idx / self.n_samples_per_image)
         files = self.files[file_idx]
 
         image1 = np.asarray(Image.open(files["image1"]))
@@ -148,9 +166,19 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
             }
 
         transformed = self.transform(**sample)
-
         image1 = transformed['image']
         image2 = transformed['image0']
+
+        if self.with_prob:
+            prob1 = np.load(files['prob1'])
+            prob2 = np.load(files['prob2'])
+            prob_sample = {
+                'prob1': prob1,
+                'prob2': prob2
+            }
+            prob_transformed = self.prob_augment(**prob_sample)
+            image1 = torch.stack((image1, prob_transformed['prob1']), dim=0)
+            image2 = torch.stack((image2, prob_transformed['prob2']), dim=0)
 
         if not self.without_mask:
             mask = transformed['mask']
