@@ -110,8 +110,8 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
             mask = os.path.join(root, split, "label", image)
             mask1 = os.path.join(root, split, "label1", image)
             mask2 = os.path.join(root, split, "label2", image)
-            prob1 = os.path.join(root, split, "prob1", "prob_" + image[:-4] + ".npz")
-            prob2 = os.path.join(root, split, "prob2", "prob_" + image[:-4] + ".npz")
+            prob1 = os.path.join(root, split, "prob_img1", "prob_" + image[:-4] + ".npz")
+            prob2 = os.path.join(root, split, "prob_img2", "prob_" + image[:-4] + ".npz")
 
             files += [
                 dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2, prob1=prob1, prob2=prob2)
