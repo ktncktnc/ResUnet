@@ -37,7 +37,6 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
         self.resized_shape = resized_shape
         self.without_mask = without_mask
         self.with_prob = with_prob
-        self.prob_augment = self.get_probs_transform(self.resized_shape)
 
         self.n_samples_per_image = n_samples_per_image
         self.random_crop = RandomCropSaveSegmentMask(512, 512)
@@ -47,6 +46,7 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
         else:
             self.transform = augment_transform
 
+        self.prob_augment = self.get_probs_transform(self.resized_shape)
         self.divide_width = self.divide_height = 0
         self.load_files(root, split)
 
