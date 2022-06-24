@@ -183,11 +183,12 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
             step += 1
 
-        print("Test...")
-        test_metrics = validation(
-            cd_test_dataloader, model, criterion, device, training_weight, validation_metrics
-        )
-        print(test_metrics)
+        if epoch % 2 == 0:
+            print("Test...")
+            test_metrics = validation(
+                cd_test_dataloader, model, criterion, device, training_weight, validation_metrics
+            )
+            print(test_metrics)
 
 
 def validation(
