@@ -1,5 +1,7 @@
 from glob import glob
 import albumentations as A
+import numpy as np
+
 from utils.augmentation import *
 import os
 import torch
@@ -169,8 +171,8 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
         image2 = transformed['image0']
 
         if self.with_prob:
-            prob1 = np.load(files['prob1'])['a']
-            prob2 = np.load(files['prob2'])['a']
+            prob1 = np.load(files['prob1'])['a'][:, :, np.newaxis]
+            prob2 = np.load(files['prob2'])['a'][:, :, np.newaxis]
             prob_sample = {
                 'image': prob1,
                 'image0': prob2

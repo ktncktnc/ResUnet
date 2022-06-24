@@ -172,8 +172,8 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         image2 = transformed['image0']
 
         if self.with_prob:
-            prob1 = np.load(files['prob1'])['a'][x1:x2, y1:y2]
-            prob2 = np.load(files['prob2'])['a'][x1:x2, y1:y2]
+            prob1 = np.load(files['prob1'])['a'][x1:x2, y1:y2, np.newaxis]
+            prob2 = np.load(files['prob2'])['a'][x1:x2, y1:y2, np.newaxis]
             prob_sample = {
                 'image': prob1,
                 'image0': prob2
