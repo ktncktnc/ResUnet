@@ -4,6 +4,7 @@ from torchvision import models
 from tqdm import tqdm
 from utils.hparams import HParam
 from dataset.s2looking_allmask import S2LookingAllMask
+from dataset.s2looking_randomcrop import S2LookingRandomCrop
 from utils import metrics
 from torch.utils.tensorboard import SummaryWriter
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
@@ -30,7 +31,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # Model
     resnet = models.resnet50(pretrained=True)
-    model = DependentResUnetMultiDecoder(resnet=resnet).to(device)
+    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4).to(device)
     # model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
@@ -86,9 +87,9 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # get data
     # cd
-    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train")
-    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val")
-    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test")
+    cd_dataset_train = S2LookingRandomCrop(hpconfig.cd_dset_dir, "train", with_prob=True)
+    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val", with_prob=True)
+    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test", with_prob=True)
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True

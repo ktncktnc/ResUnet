@@ -58,8 +58,7 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
                 ToTensorV2()
             ],
             additional_targets={
-                'prob1': 'image',
-                'prob2': 'image'
+                'image0': 'image'
             })
 
     def get_default_transform(self, split, resized_shape):
@@ -170,15 +169,15 @@ class S2LookingRandomCrop(torch.utils.data.Dataset):
         image2 = transformed['image0']
 
         if self.with_prob:
-            prob1 = np.load(files['prob1'])
-            prob2 = np.load(files['prob2'])
+            prob1 = np.load(files['prob1'])['a']
+            prob2 = np.load(files['prob2'])['a']
             prob_sample = {
-                'prob1': prob1,
-                'prob2': prob2
+                'image': prob1,
+                'image0': prob2
             }
             prob_transformed = self.prob_augment(**prob_sample)
-            image1 = torch.stack((image1, prob_transformed['prob1']), dim=0)
-            image2 = torch.stack((image2, prob_transformed['prob2']), dim=0)
+            image1 = torch.cat((image1, prob_transformed['image']), dim=0)
+            image2 = torch.cat((image2, prob_transformed['image0']), dim=0)
 
         if not self.without_mask:
             mask = transformed['mask']
