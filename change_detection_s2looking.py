@@ -20,7 +20,7 @@ from utils.hungarian import *
 
 
 def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
-         cm_weights=None):
+         cm_weights=None, with_segment_mask=False):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
     assert (0 <= mode < 3)
@@ -51,7 +51,12 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     if not os.path.exists(final_cd_path):
         os.makedirs(final_cd_path)
 
-    model = DependentResUnetMultiDecoder().to(device)
+    if with_segment_mask:
+        input_channel=4
+    else:
+        input_channel=3
+
+    model = DependentResUnetMultiDecoder(input_channel=input_channel).to(device)
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
@@ -59,6 +64,8 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     training_metrics = torchmetrics.MetricCollection(
         {
             "Dice": torchmetrics.Dice(average='none', num_classes=2),
+            "Precision": torchmetrics.Precision(average='none', num_classes=2),
+            "Recall": torchmetrics.Recall(average='none', num_classes=2)
         },
         prefix='test_'
     )
@@ -68,7 +75,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     else:
         n_masks = 1
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, with_prob=with_segment_mask)
 
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
@@ -213,6 +220,11 @@ if __name__ == '__main__':
     parser.add_argument("--threshold", default=0.5, type=float)
     parser.add_argument("--batchsize", default=8, type=int)
     parser.add_argument("--split", default="test", type=str)
+
+    parser.add_argument('--segment', action='store_true')
+    parser.add_argument('--no-segment', dest='segment', action='store_false')
+    parser.set_defaults(segment=True)
+
     parser.add_argument(
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
     )
@@ -230,4 +242,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize)
+    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, with_segment_mask=args.segment)
