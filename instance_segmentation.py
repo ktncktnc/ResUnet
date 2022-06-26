@@ -149,20 +149,20 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
                 if divide >= dataset.divide*dataset.divide - 1:
                     # Colorize instance segmentation map and save
-                    # masks1 = save_mask_and_contour(
-                    #     full_x[0, ...], full_x[1, ...], nuclei_palette,
-                    #     os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
-                    #     (dataset.width, dataset.height)
-                    # ).astype(int)
-                    #
-                    # masks2 = save_mask_and_contour(
-                    #     full_y[0, ...], full_y[1, ...], nuclei_palette,
-                    #     os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
-                    #     (dataset.width, dataset.height)
-                    # ).astype(int)
+                    masks1 = save_mask_and_contour(
+                        full_x[0, ...], full_x[1, ...], nuclei_palette,
+                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
+                        (dataset.width, dataset.height)
+                    ).astype(int)
 
-                    full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
-                    full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    masks2 = save_mask_and_contour(
+                        full_y[0, ...], full_y[1, ...], nuclei_palette,
+                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
+                        (dataset.width, dataset.height)
+                    ).astype(int)
+
+                    # full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    # full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
 
                     # hdf_x_probs = pd.HDFStore(os.path.join(prob_img1_save_path, "prob_{filename}.hdf".format(filename=filename)))
                     # hdf_y_probs = pd.HDFStore(os.path.join(prob_img2_save_path, "prob_{filename}.hdf".format(filename=filename)))
@@ -173,8 +173,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                     # hdf_x_probs.close()
                     # hdf_y_probs.close()
 
-                    np.savez_compressed(os.path.join(prob_img1_save_path, "prob_{filename}".format(filename=filename)), a=full_x_probs)
-                    np.savez_compressed(os.path.join(prob_img2_save_path, "prob_{filename}".format(filename=filename)), a=full_y_probs)
+                    # np.savez_compressed(os.path.join(prob_img1_save_path, "prob_{filename}".format(filename=filename)), a=full_x_probs)
+                    # np.savez_compressed(os.path.join(prob_img2_save_path, "prob_{filename}".format(filename=filename)), a=full_y_probs)
                     # Hungarian algorithm
                     if cd:
                         masks1 = torch.from_numpy(masks1)
