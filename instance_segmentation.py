@@ -67,9 +67,9 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
     training_metrics = torchmetrics.MetricCollection(
         {
-            "Dice": torchmetrics.Dice(average='none', num_classes=2),
-            "Precision": torchmetrics.Precision(average='none', num_classes=2),
-            "Recall": torchmetrics.Recall(average='none', num_classes=2)
+            "Dice": torchmetrics.Dice(average='none', num_classes=2, mdmc_reduce='global'),
+            "Precision": torchmetrics.Precision(average='none', num_classes=2, mdmc_reduce='global'),
+            "Recall": torchmetrics.Recall(average='none', num_classes=2, mdmc_reduce='global')
         },
         prefix='test_'
     )
@@ -184,8 +184,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                         gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
 
                         training_metrics(
-                            target=torch.from_numpy(gt_cd),
-                            preds=torch.from_numpy(hg_map)
+                            target=torch.from_numpy(gt_cd[np.newaxis, :, :]),
+                            preds=torch.from_numpy(hg_map[np.newaxis, :, :])
                         )
                         hungarian_branch_acc.update(metrics.np_dice_coeff(hg_map[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
 
