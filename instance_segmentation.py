@@ -7,7 +7,7 @@ import pandas as pd
 import albumentations as albums
 import torchmetrics
 from albumentations.pytorch import ToTensorV2
-from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
+from core.siamese_resunet_cd_segmenation_based import SiameseResUnetSegmentationBased
 from utils import metrics
 from dataset.s2looking_allmask import S2LookingAllMask
 from dataset.utils import *
@@ -60,7 +60,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
     if not os.path.exists(final_cd_path):
         os.makedirs(final_cd_path)
 
-    model = DependentResUnetMultiDecoder().to(device)
+    model = SiameseResUnetSegmentationBased().to(device)
     checkpoint = torch.load(trained_path, map_location=device)
     model.load_segmentation_weight(checkpoint["state_dict"])
     model.eval()
@@ -68,6 +68,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
     training_metrics = torchmetrics.MetricCollection(
         {
             "Dice": torchmetrics.Dice(average='none', num_classes=2),
+            "Precision": torchmetrics.Precision(average='none', num_classes=2),
+            "Recall": torchmetrics.Recall(average='none', num_classes=2)
         },
         prefix='test_'
     )
