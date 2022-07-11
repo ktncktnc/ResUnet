@@ -10,8 +10,6 @@ from shapely import wkt
 from shapely.geometry import Polygon
 import torch
 from torch.utils.data import Dataset, DataLoader
-from utils import preprocess
-import torchvision.transforms as transforms
 import multiprocessing
 
 multiprocessing.set_start_method('spawn', True)
