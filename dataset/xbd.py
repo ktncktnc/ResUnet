@@ -76,6 +76,11 @@ class XView2Dataset(Dataset):
             tier3_labs = [s for s in os.listdir(self.dirs['tier3_labs'])]
             test_labs = [s for s in os.listdir(self.dirs['test_labs'])]
             hold_labs = [s for s in os.listdir(self.dirs['hold_labs'])]
+        else:
+            train_labs = None
+            tier3_labs = None
+            test_labs = None
+            hold_labs = None
 
         self.sample_files = []
         self.neg_sample_files = []
@@ -147,7 +152,7 @@ class XView2Dataset(Dataset):
                 }
             )
 
-    def add_samples_train(self, img_dirs, lab_dirs, imgs, labs, mode='train', single_disaster=None):
+    def add_samples_train(self, img_dirs, lab_dirs, imgs, labs=None, mode='train', single_disaster=None):
         for pre in os.listdir(img_dirs):
             if pre[-17:] != '_pre_disaster.png':
                 continue
@@ -158,8 +163,10 @@ class XView2Dataset(Dataset):
             pre_label = img_id + '_pre_disaster_target.png'
             post_label = img_id + '_post_disaster_target.png'
             assert post in imgs
-            assert pre_label in labs
-            assert post_label in labs
+            if self.with_mask:
+                assert pre_label in labs
+                assert post_label in labs
+
             assert img_id not in self.sample_files
             files = {'img_id': img_id,
                      'pre_img': os.path.join(img_dirs, pre),
