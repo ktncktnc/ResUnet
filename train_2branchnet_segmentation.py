@@ -10,6 +10,7 @@ import numpy as np
 from dataset.alabama_segment import AlabamaDataset
 from dataset.s2looking_randomcrop import S2LookingRandomCrop
 from dataset.s2looking_allmask import S2LookingAllMask
+from dataset.xbd import XView2Dataset
 from utils import metrics
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from utils.metrics import Dice, TrackingMetric
@@ -90,8 +91,10 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
     # cd
     alb_dataset_train = AlabamaDataset(hpconfig.dset1_dir, "train")
     alb_dataset_val = AlabamaDataset(hpconfig.dset1_dir, "test")
-    s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train_cr")
-    s2l_dataset_val = S2LookingAllMask(hpconfig.dset2_dir, "test")
+    # s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train_cr")
+    # s2l_dataset_val = S2LookingAllMask(hpconfig.dset2_dir, "test")
+    s2l_dataset_train = XView2Dataset(hpconfig.dset2_dir, mode='train')
+    s2l_dataset_val = XView2Dataset(hpconfig.dset2_dir, mode="test")
 
     alb_train_dataloader = DataLoader(
         alb_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
