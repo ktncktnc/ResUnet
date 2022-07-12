@@ -208,7 +208,7 @@ class XView2Dataset(torch.utils.data.Dataset):
             sample['post_mask'] = post_label
         # self.random_crop.get_best_patch(pre_label)
 
-        transformed = self.transform(**sample)
+        transformed = self.data_transforms(**sample)
         image1 = transformed['image']
         image2 = transformed['image0']
 
