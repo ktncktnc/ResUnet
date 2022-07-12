@@ -135,8 +135,8 @@ class XView2Dataset(Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    'pre_mask': 'mask',
-                    'post_mask': 'masks',
+                    # 'pre_mask': 'mask',
+                    # 'post_mask': 'masks',
                 }
             )
         else:
@@ -147,8 +147,8 @@ class XView2Dataset(Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    'pre_mask': 'mask',
-                    'post_mask': 'masks',
+                    # 'pre_mask': 'mask',
+                    # 'post_mask': 'masks',
                 }
             )
 
