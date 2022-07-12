@@ -36,7 +36,7 @@ gupta_test = ["tuscaloosa-tornado", "lower-puna-volcano", "woolsey-fire", "jopli
               "portugal-wildfire", "moore-tornado", "sunda-tsunami"]
 
 
-class XView2Dataset(Dataset):
+class XView2Dataset(torch.utils.data.Dataset):
     """xView2
     input: Post image
     target: pixel-wise classes
@@ -83,38 +83,13 @@ class XView2Dataset(Dataset):
             hold_labs = None
 
         self.sample_files = []
-        self.neg_sample_files = []
         if self.mode == 'train':
-            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs,
-                                   single_disaster=single_disaster)
+            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs)
         elif self.mode == 'train_tier3':
-            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs,
-                                   single_disaster=single_disaster)
-            self.add_samples_train(self.dirs['tier3_imgs'], self.dirs['tier3_labs'], tier3_imgs, tier3_labs,
-                                   single_disaster=single_disaster)
-        elif self.mode in ['oodtrain', 'oodtest', 'guptatrain', 'guptatest', "ood2train", "ood2test", "ood3train",
-                           "ood3test", "singletrain", "singletest"]:
-            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs,
-                                   mode=self.mode, single_disaster=single_disaster)
-            self.add_samples_train(self.dirs['tier3_imgs'], self.dirs['tier3_labs'], tier3_imgs, tier3_labs,
-                                   mode=self.mode, single_disaster=single_disaster)
-            self.add_samples_train(self.dirs['test_imgs'], self.dirs['test_labs'], test_imgs, test_labs, mode=self.mode,
-                                   single_disaster=single_disaster)
-        elif self.mode in ['oodhold', 'guptahold', "ood2hold", "ood3hold", "singlehold"]:
-            self.add_samples_train(self.dirs['hold_imgs'], self.dirs['hold_labs'], hold_imgs, hold_labs, mode=self.mode,
-                                   single_disaster=single_disaster)
-        else:
-            for pre in os.listdir(self.dirs['test_imgs']):
-                if pre[:9] != 'test_pre_':
-                    continue
-                img_id = pre[9:][:-4]
-                post = 'test_post_' + pre[9:]
-                assert post in test_imgs
-                files = {'img_id': img_id,
-                         'pre_img': os.path.join(self.dirs['test_imgs'], pre),
-                         'post_img': os.path.join(self.dirs['test_imgs'], post)}
-
-                self.sample_files.append(files)
+            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs)
+            self.add_samples_train(self.dirs['tier3_imgs'], self.dirs['tier3_labs'], tier3_imgs, tier3_labs)
+        elif self.mode in ["test"]:
+            self.add_samples_train(self.dirs['test_imgs'], self.dirs['test_labs'], test_imgs, test_labs)
 
         self.random_crop = RandomCropSaveSegmentMask(512, 512)
         if augment_transform is None:
@@ -138,8 +113,8 @@ class XView2Dataset(Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    # 'pre_mask': 'mask',
-                    # 'post_mask': 'masks',
+                    'pre_mask': 'mask',
+                    'post_mask': 'masks',
                 }
             )
         else:
@@ -150,12 +125,12 @@ class XView2Dataset(Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    # 'pre_mask': 'mask',
-                    # 'post_mask': 'masks',
+                    'pre_mask': 'mask',
+                    'post_mask': 'masks',
                 }
             )
 
-    def add_samples_train(self, img_dirs, lab_dirs, imgs, labs=None, mode='train', single_disaster=None):
+    def add_samples_train(self, img_dirs, lab_dirs, imgs, labs=None):
         for pre in os.listdir(img_dirs):
             if pre[-17:] != '_pre_disaster.png':
                 continue
@@ -171,25 +146,16 @@ class XView2Dataset(Dataset):
                 assert post_label in labs
 
             assert img_id not in self.sample_files
-            files = {'img_id': img_id,
-                     'pre_img': os.path.join(img_dirs, pre),
-                     'post_img': os.path.join(img_dirs, post),
-                     'pre_label': os.path.join(lab_dirs, pre_label),
-                     'post_label': os.path.join(lab_dirs, post_label)
-                     }
-            if mode == 'train' or (mode in ['oodtrain', 'oodhold'] and disaster in holdout_train) or (
-                    mode == 'oodtest' and disaster in holdout_test) or (
-                    mode in ['guptatrain', 'guptahold'] and disaster in gupta_train) or (
-                    mode == 'guptatest' and disaster in gupta_test) or (
-                    mode in ['ood2train', 'ood2hold'] and disaster in holdout2_train) or (
-                    mode == 'ood2test' and disaster in holdout2_test) or (
-                    mode in ['ood3train', 'ood3hold'] and disaster in holdout3_train) or (
-                    mode == 'ood3test' and disaster in holdout3_test) or (
-                    mode.startswith("single") and disaster == single_disaster):
-
-                self.sample_files += [
-                    {**files, **{'divide': i}} for i in range(self.divide*self.divide)
-                ]
+            files = {
+                'img_id': img_id,
+                 'pre_img': os.path.join(img_dirs, pre),
+                 'post_img': os.path.join(img_dirs, post),
+                 'pre_label': os.path.join(lab_dirs, pre_label),
+                 'post_label': os.path.join(lab_dirs, post_label)
+            }
+            self.sample_files += [
+                {**files, **{'divide': i}} for i in range(self.divide*self.divide)
+            ]
 
     def get_sample_info(self, idx):
         files = self.sample_files[idx]
