@@ -113,8 +113,7 @@ class XView2Dataset(torch.utils.data.Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    'pre_mask': 'mask',
-                    'post_mask': 'masks',
+                    'multi_masks': 'masks',
                 }
             )
         else:
@@ -125,8 +124,7 @@ class XView2Dataset(torch.utils.data.Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    'pre_mask': 'mask',
-                    'post_mask': 'masks',
+                    'multi_masks': 'masks',
                 }
             )
 
@@ -202,20 +200,23 @@ class XView2Dataset(torch.utils.data.Dataset):
         }
 
         if self.with_mask:
-            pre_label = cv2.imread(files['pre_label'])[x1:x2, y1:y2, ...]
-            post_label = cv2.imread(files['post_label'])[x1:x2, y1:y2, ...]
-            sample['pre_mask'] = pre_label
-            sample['post_mask'] = post_label
+            pre_label = cv2.imread(files['pre_label'])[x1:x2, y1:y2, 0]
+            post_label = cv2.imread(files['post_label'])[x1:x2, y1:y2, 0]
+            masks = np.zeros((post_img.shape[0], post_img.shape[1], 5))
+            masks[:, :, 0] = (pre_label == 0) * 1
+            for i in range(1, 5):
+                masks[:, :, i] = (post_label == i) * 1
+
+            sample['multi_masks'] = masks
         # self.random_crop.get_best_patch(pre_label)
 
         transformed = self.data_transforms(**sample)
         image1 = transformed['image']
-        image2 = transformed['image0']
+        image2 = transformed['post_image']
 
         if self.with_mask:
-            pre_label = transformed['pre_mask']
-            post_label = transformed['post_mask']
-            return dict(x=image1.float(), y=image2.float(), pre_label=pre_label.float(), post_label=post_label.float())
+            masks = transformed['multi_masks']
+            return dict(x=image1.float(), y=image2.float(), masks=masks.float())
         return dict(x=image1.float(), y=image2.float())
 
     @staticmethod
