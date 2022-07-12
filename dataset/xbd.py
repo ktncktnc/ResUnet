@@ -113,7 +113,6 @@ class XView2Dataset(torch.utils.data.Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    'multi_masks': 'masks',
                 }
             )
         else:
@@ -124,7 +123,6 @@ class XView2Dataset(torch.utils.data.Dataset):
             ],
                 additional_targets={
                     'post_image': 'image',
-                    'multi_masks': 'masks',
                 }
             )
 
@@ -207,7 +205,7 @@ class XView2Dataset(torch.utils.data.Dataset):
             for i in range(1, 5):
                 masks[:, :, i] = (post_label == i) * 1
 
-            sample['multi_masks'] = masks
+            sample['masks'] = [masks[:, :, i] for i in range(5)]
         # self.random_crop.get_best_patch(pre_label)
 
         transformed = self.data_transforms(**sample)
@@ -215,7 +213,7 @@ class XView2Dataset(torch.utils.data.Dataset):
         image2 = transformed['post_image']
 
         if self.with_mask:
-            masks = transformed['multi_masks']
+            masks = transformed['masks']
             return dict(x=image1.float(), y=image2.float(), masks=masks.float())
         return dict(x=image1.float(), y=image2.float())
 
