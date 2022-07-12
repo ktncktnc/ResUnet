@@ -156,6 +156,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                     cm_img = Image.fromarray(full_cm, mode='1')
+                    cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=filename)))
                     cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
 
                     gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
