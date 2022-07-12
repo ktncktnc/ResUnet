@@ -54,6 +54,7 @@ class XView2Dataset(torch.utils.data.Dataset):
         self.divide = divide
         self.resized_shape = resized_shape
         self.divide_width = self.divide_height = 512
+        self.width = self.height = 1024
 
         assert rgb_bgr in ('rgb', 'bgr')
         self.rgb = bool(rgb_bgr == 'rgb')
