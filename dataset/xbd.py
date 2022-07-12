@@ -87,6 +87,9 @@ class XView2Dataset(Dataset):
         if self.mode == 'train':
             self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs,
                                    single_disaster=single_disaster)
+        elif self.mode == 'train_tier3':
+            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs,
+                                   single_disaster=single_disaster)
             self.add_samples_train(self.dirs['tier3_imgs'], self.dirs['tier3_labs'], tier3_imgs, tier3_labs,
                                    single_disaster=single_disaster)
         elif self.mode in ['oodtrain', 'oodtest', 'guptatrain', 'guptatest', "ood2train", "ood2test", "ood3train",
