@@ -45,11 +45,12 @@ class XView2Dataset(Dataset):
                 'un-classified': 255}
     diaster_type = {'earthquake': 0, 'fire': 1, 'tsunami': 2, 'volcano': 3, 'wind': 4, 'flooding': 5}
 
-    def __init__(self, root_dir, resized_shape=(256, 256), rgb_bgr='rgb', preprocessing=None, mode='train', divide=2,
+    def __init__(self, root_dir, with_mask=True, resized_shape=(256, 256), rgb_bgr='rgb', preprocessing=None, mode='train', divide=2,
                  single_disaster=None, augment_transform=None):
         # assert mode in ('train', 'test', 'oodtrain', 'oodtest', 'oodhold',"guptatrain","guptahold")
         self.mode = mode
         self.root = root_dir
+        self.with_mask = with_mask
         self.divide = divide
         self.resized_shape = resized_shape
         self.divide_width = self.divide_height = 512
@@ -67,12 +68,14 @@ class XView2Dataset(Dataset):
                      'hold_labs': os.path.join(self.root, 'hold', 'targets')}
         train_imgs = [s for s in os.listdir(self.dirs['train_imgs'])]
         tier3_imgs = [s for s in os.listdir(self.dirs['tier3_imgs'])]
-        train_labs = [s for s in os.listdir(self.dirs['train_labs'])]
-        tier3_labs = [s for s in os.listdir(self.dirs['tier3_labs'])]
         test_imgs = [s for s in os.listdir(self.dirs['test_imgs'])]
-        test_labs = [s for s in os.listdir(self.dirs['test_labs'])]
         hold_imgs = [s for s in os.listdir(self.dirs['hold_imgs'])]
-        hold_labs = [s for s in os.listdir(self.dirs['hold_labs'])]
+
+        if self.with_mask:
+            train_labs = [s for s in os.listdir(self.dirs['train_labs'])]
+            tier3_labs = [s for s in os.listdir(self.dirs['tier3_labs'])]
+            test_labs = [s for s in os.listdir(self.dirs['test_labs'])]
+            hold_labs = [s for s in os.listdir(self.dirs['hold_labs'])]
 
         self.sample_files = []
         self.neg_sample_files = []
@@ -217,23 +220,27 @@ class XView2Dataset(Dataset):
 
         pre_img = cv2.imread(files['pre_img'])[x1:x2, y1:y2, ...]
         post_img = cv2.imread(files['post_img'])[x1:x2, y1:y2, ...]
-        pre_label = cv2.imread(files['pre_label'])[x1:x2, y1:y2, ...]
-        post_label = cv2.imread(files['post_label'])[x1:x2, y1:y2, ...]
-
-        # self.random_crop.get_best_patch(pre_label)
-
         sample = {
             'image': pre_img,
-            'post_image': post_img,
-            'pre_mask': pre_label,
-            'post_mask': post_label
+            'post_image': post_img
         }
+
+        if self.with_mask:
+            pre_label = cv2.imread(files['pre_label'])[x1:x2, y1:y2, ...]
+            post_label = cv2.imread(files['post_label'])[x1:x2, y1:y2, ...]
+            sample['pre_mask'] = pre_label
+            sample['post_mask'] = post_label
+        # self.random_crop.get_best_patch(pre_label)
+
         transformed = self.transform(**sample)
         image1 = transformed['image']
         image2 = transformed['image0']
-        pre_label = transformed['pre_mask']
-        post_label = transformed['post_mask']
-        return dict(x=image1.float(), y=image2.float(), pre_label=pre_label.float(), post_label=post_label.float())
+
+        if self.with_mask:
+            pre_label = transformed['pre_mask']
+            post_label = transformed['post_mask']
+            return dict(x=image1.float(), y=image2.float(), pre_label=pre_label.float(), post_label=post_label.float())
+        return dict(x=image1.float(), y=image2.float())
 
     @staticmethod
     def _get_building_from_json(post_json):
