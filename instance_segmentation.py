@@ -142,7 +142,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                 divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
                 # S2Looking: filename = os.path.basename(files['image1'])[:-4]
-                filename = os.path.basename(files['pre_img'])[:-4]
+                pre_name = os.path.basename(files['pre_img'])[:-4]
+                post_name = os.path.basename(files['post_img'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
@@ -154,27 +155,27 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                     # Colorize instance segmentation map and save
                     masks1 = save_mask_and_contour(
                         full_x[0, ...], full_x[1, ...], nuclei_palette,
-                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
+                        os.path.join(img1_save_path, "{filename}.png".format(filename=pre_name)),
                         (dataset.width, dataset.height)
                     ).astype(int)
 
                     masks2 = save_mask_and_contour(
                         full_y[0, ...], full_y[1, ...], nuclei_palette,
-                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
+                        os.path.join(img2_save_path, "{filename}.png".format(filename=post_name)),
                         (dataset.width, dataset.height)
                     ).astype(int)
 
-                    # full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
-                    # full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                    full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
 
-                    # hdf_x_probs = pd.HDFStore(os.path.join(prob_img1_save_path, "prob_{filename}.hdf".format(filename=filename)))
-                    # hdf_y_probs = pd.HDFStore(os.path.join(prob_img2_save_path, "prob_{filename}.hdf".format(filename=filename)))
-                    #
-                    # hdf_x_probs.append("a", pd.DataFrame(full_x_probs))
-                    # hdf_y_probs.append("a", pd.DataFrame(full_y_probs))
-                    #
-                    # hdf_x_probs.close()
-                    # hdf_y_probs.close()
+                    hdf_x_probs = pd.HDFStore(os.path.join(prob_img1_save_path, "{filename}.hdf".format(filename=pre_name)))
+                    hdf_y_probs = pd.HDFStore(os.path.join(prob_img2_save_path, "{filename}.hdf".format(filename=post_name)))
+
+                    hdf_x_probs.append("a", pd.DataFrame(full_x_probs))
+                    hdf_y_probs.append("a", pd.DataFrame(full_y_probs))
+
+                    hdf_x_probs.close()
+                    hdf_y_probs.close()
 
                     # np.savez_compressed(os.path.join(prob_img1_save_path, "prob_{filename}".format(filename=filename)), a=full_x_probs)
                     # np.savez_compressed(os.path.join(prob_img2_save_path, "prob_{filename}".format(filename=filename)), a=full_y_probs)
@@ -196,7 +197,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
 
                         # mask_color_1 = convert_to_color_map(masks1, dataset.width, dataset.height)
                         # mask_color_2 = convert_to_color_map(masks2, dataset.width, dataset.height)
-                        cv2.imwrite(os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)),
+                        cv2.imwrite(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=post_name)),
                                     hg_img)
                         # plot_and_save(mask_color_1, mask_color_2, hg_img,
                         #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
