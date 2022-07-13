@@ -90,7 +90,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
     )
 
     #dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=False)
-    dataset = XView2Dataset(root_dir=hp.cd_dset_dir, mode='test')
+    dataset = XView2Dataset(root_dir=hp.cd_dset_dir, mode=split)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
