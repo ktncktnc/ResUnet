@@ -301,3 +301,6 @@ if __name__ == '__main__':
 
     for i, samples in enumerate(dataloader):
         print(i, samples['disaster'], samples['image_id'], samples['post_img'].shape)
+
+    def get_full_resized_shape(self):
+        return self.resized_shape[0]*self.divide, self.resized_shape[1]*self.divide
