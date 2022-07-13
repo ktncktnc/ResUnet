@@ -83,7 +83,7 @@ class XView2Dataset(torch.utils.data.Dataset):
             test_labs = None
             hold_labs = None
 
-        self.sample_files = []
+        self.files = []
         if self.mode == 'train':
             self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs)
         elif self.mode == 'train_tier3':
@@ -142,7 +142,7 @@ class XView2Dataset(torch.utils.data.Dataset):
                 assert pre_label in labs
                 assert post_label in labs
 
-            assert img_id not in self.sample_files
+            assert img_id not in self.files
             files = {
                 'img_id': img_id,
                  'pre_img': os.path.join(img_dirs, pre),
@@ -150,12 +150,12 @@ class XView2Dataset(torch.utils.data.Dataset):
                  'pre_label': os.path.join(lab_dirs, pre_label),
                  'post_label': os.path.join(lab_dirs, post_label)
             }
-            self.sample_files += [
+            self.files += [
                 {**files, **{'divide': i}} for i in range(self.divide*self.divide)
             ]
 
     def get_sample_info(self, idx):
-        files = self.sample_files[idx]
+        files = self.files[idx]
         pre_img = cv2.imread(files['pre_img'])
         post_img = cv2.imread(files['post_img'])
 
@@ -188,7 +188,7 @@ class XView2Dataset(torch.utils.data.Dataset):
         return sample
 
     def __getitem__(self, idx):
-        files = self.sample_files[idx]
+        files = self.files[idx]
         x1, x2, y1, y2 = self.get_coord(files['divide'])
 
         pre_img = cv2.imread(files['pre_img'])[x1:x2, y1:y2, ...]
@@ -255,7 +255,7 @@ class XView2Dataset(torch.utils.data.Dataset):
         pass
 
     def __len__(self):
-        return len(self.sample_files)
+        return len(self.files)
 
     def get_coord(self, divide):
         row = int(divide/self.divide)
