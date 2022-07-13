@@ -215,7 +215,7 @@ class XView2Dataset(torch.utils.data.Dataset):
 
         if self.with_mask:
             masks = transformed['masks']
-            masks = np.asarray(masks)
+            masks = torch.FloatTensor(masks)
             return dict(x=image1.float(), y=image2.float(), masks=masks.float())
         return dict(x=image1.float(), y=image2.float())
 

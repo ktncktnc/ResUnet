@@ -10,6 +10,7 @@ from albumentations.pytorch import ToTensorV2
 from core.siamese_resunet_cd_segmenation_based import SiameseResUnetSegmentationBased
 from utils import metrics
 from dataset.s2looking_allmask import S2LookingAllMask
+from dataset.xbd import XView2Dataset
 from dataset.utils import *
 from PIL import Image, ImagePalette
 from torch.utils.data import DataLoader
@@ -88,7 +89,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
         }
     )
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=False)
+    #dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=False)
+    dataset = XView2Dataset(root_dir=hp.cd_dset_dir, mode='test')
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
