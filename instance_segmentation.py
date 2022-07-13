@@ -141,7 +141,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
                 files = dataset.files[idx * batch_size + i]
                 divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
-                filename = os.path.basename(files['image1'])[:-4]
+                # S2Looking: filename = os.path.basename(files['image1'])[:-4]
+                filename = os.path.basename(files['pre_img'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
