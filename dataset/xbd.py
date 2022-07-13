@@ -275,6 +275,9 @@ class XView2Dataset(torch.utils.data.Dataset):
 
         return x1, x2, y1, y2
 
+    def get_full_resized_shape(self):
+        return self.resized_shape[0]*self.divide, self.resized_shape[1]*self.divide
+
 if __name__ == '__main__':
     root_path = "/mnt/Dataset/xView2/v2"
     dataset = XView2Dataset(root_path, rgb_bgr='rgb', preprocessing={'flip': True, 'scale': None, 'crop': (513, 513)})
@@ -302,5 +305,3 @@ if __name__ == '__main__':
     for i, samples in enumerate(dataloader):
         print(i, samples['disaster'], samples['image_id'], samples['post_img'].shape)
 
-    def get_full_resized_shape(self):
-        return self.resized_shape[0]*self.divide, self.resized_shape[1]*self.divide
