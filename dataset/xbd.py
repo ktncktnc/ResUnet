@@ -45,12 +45,13 @@ class XView2Dataset(torch.utils.data.Dataset):
                 'un-classified': 255}
     diaster_type = {'earthquake': 0, 'fire': 1, 'tsunami': 2, 'volcano': 3, 'wind': 4, 'flooding': 5}
 
-    def __init__(self, root_dir, with_mask=True, resized_shape=(256, 256), rgb_bgr='rgb', preprocessing=None, mode='train', divide=2,
+    def __init__(self, root_dir, with_mask=True, with_prob=True, resized_shape=(256, 256), rgb_bgr='rgb', preprocessing=None, mode='train', divide=2,
                  single_disaster=None, augment_transform=None):
         # assert mode in ('train', 'test', 'oodtrain', 'oodtest', 'oodhold',"guptatrain","guptahold")
         self.mode = mode
         self.root = root_dir
         self.with_mask = with_mask
+        self.with_prob = with_prob
         self.divide = divide
         self.resized_shape = resized_shape
         self.divide_width = self.divide_height = 512
@@ -61,12 +62,17 @@ class XView2Dataset(torch.utils.data.Dataset):
         self.preprocessing = preprocessing
         self.dirs = {'train_imgs': os.path.join(self.root, 'train', 'images'),
                      'train_labs': os.path.join(self.root, 'train', 'targets'),
+                     'train_probs': os.path.join(self.root, 'train', 'probs'),
                      'tier3_imgs': os.path.join(self.root, 'tier3', 'images'),
                      'tier3_labs': os.path.join(self.root, 'tier3', 'targets'),
+                     'tier3_probs': os.path.join(self.root, 'tier3', 'probs'),
                      'test_imgs': os.path.join(self.root, 'test', 'images'),
                      'test_labs': os.path.join(self.root, 'test', 'targets'),
+                     'test_probs': os.path.join(self.root, 'test', 'probs'),
                      'hold_imgs': os.path.join(self.root, 'hold', 'images'),
-                     'hold_labs': os.path.join(self.root, 'hold', 'targets')}
+                     'hold_labs': os.path.join(self.root, 'hold', 'targets'),
+                     'hold_probs': os.path.join(self.root, 'hold', 'probs'),
+                     }
         train_imgs = [s for s in os.listdir(self.dirs['train_imgs'])]
         tier3_imgs = [s for s in os.listdir(self.dirs['tier3_imgs'])]
         test_imgs = [s for s in os.listdir(self.dirs['test_imgs'])]
@@ -83,6 +89,12 @@ class XView2Dataset(torch.utils.data.Dataset):
             test_labs = None
             hold_labs = None
 
+        if self.with_prob:
+            train_probs = [s for s in os.listdir(self.dirs['train_probs'])]
+            tier3_probs = [s for s in os.listdir(self.dirs['tier3_probs'])]
+            test_probs = [s for s in os.listdir(self.dirs['test_probs'])]
+            hold_probs = [s for s in os.listdir(self.dirs['hold_probs'])]
+
         self.files = []
         if self.mode == 'train':
             self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs)
@@ -97,13 +109,14 @@ class XView2Dataset(torch.utils.data.Dataset):
             self.data_transforms = self.get_default_transform(mode)
         else:
             self.data_transforms = augment_transform
+        self.prob_augment = self.get_probs_transform()
 
     def get_default_transform(self, mode):
         if mode not in ['test', 'oodtest', 'oodhold', 'guptatest', 'guptahold', "ood2test", "ood2hold",
                         "ood3test", "ood3hold", "singletest", "singlehold"]:
             return A.Compose([
-                A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
-                A.RandomRotate90(),
+                #A.ShiftScaleRotate(shift_limit=0, scale_limit=(-0.5, 0.1), rotate_limit=10),
+                #A.RandomRotate90(),
                 A.RandomGamma(),
                 A.Blur(blur_limit=5, p=0.4),
                 A.RGBShift(p=0.5),
@@ -127,7 +140,17 @@ class XView2Dataset(torch.utils.data.Dataset):
                 }
             )
 
-    def add_samples_train(self, img_dirs, lab_dirs, imgs, labs=None):
+    def get_probs_transform(self):
+        return A.Compose([
+            A.Resize(self.resized_shape[0], self.resized_shape[1]),
+            PerImageStandazation(),
+            ToTensorV2()
+        ],
+            additional_targets={
+                'image0': 'image'
+            })
+
+    def add_samples_train(self, img_dirs, lab_dirs, imgs, labs=None, prob_dirs=None, probs=None):
         for pre in os.listdir(img_dirs):
             if pre[-17:] != '_pre_disaster.png':
                 continue
@@ -137,6 +160,8 @@ class XView2Dataset(torch.utils.data.Dataset):
             post = img_id + '_post_disaster.png'
             pre_label = img_id + '_pre_disaster_target.png'
             post_label = img_id + '_post_disaster_target.png'
+            pre_prob = img_id + '_pre_disaster_target.hdf'
+            post_prob = img_id + '_post_disaster_target.hdf'
             assert post in imgs
             if self.with_mask:
                 assert pre_label in labs
@@ -145,10 +170,12 @@ class XView2Dataset(torch.utils.data.Dataset):
             assert img_id not in self.files
             files = {
                 'img_id': img_id,
-                 'pre_img': os.path.join(img_dirs, pre),
-                 'post_img': os.path.join(img_dirs, post),
-                 'pre_label': os.path.join(lab_dirs, pre_label),
-                 'post_label': os.path.join(lab_dirs, post_label)
+                'pre_img': os.path.join(img_dirs, pre),
+                'post_img': os.path.join(img_dirs, post),
+                'pre_label': os.path.join(lab_dirs, pre_label),
+                'post_label': os.path.join(lab_dirs, post_label),
+                'pre_prob': os.path.join(prob_dirs, pre_prob),
+                'post_prob': os.path.join(prob_dirs, post_prob)
             }
             self.files += [
                 {**files, **{'divide': i}} for i in range(self.divide*self.divide)
@@ -212,6 +239,17 @@ class XView2Dataset(torch.utils.data.Dataset):
         transformed = self.data_transforms(**sample)
         image1 = transformed['image']
         image2 = transformed['post_image']
+
+        if self.with_prob:
+            prob1 = np.load(files['pre_prob'])['a'][x1:x2, y1:y2, np.newaxis]
+            prob2 = np.load(files['post_prob'])['a'][x1:x2, y1:y2, np.newaxis]
+            prob_sample = {
+                'image': prob1,
+                'image0': prob2
+            }
+            prob_transformed = self.prob_augment(**prob_sample)
+            image1 = torch.cat((image1, prob_transformed['image']), dim=0)
+            image2 = torch.cat((image2, prob_transformed['image0']), dim=0)
 
         if self.with_mask:
             masks = transformed['masks']

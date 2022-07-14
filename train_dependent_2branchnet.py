@@ -5,6 +5,7 @@ from tqdm import tqdm
 from utils.hparams import HParam
 from dataset.s2looking_allmask import S2LookingAllMask
 from dataset.s2looking_randomcrop import S2LookingRandomCrop
+from dataset.xbd import XView2Dataset
 from utils import metrics
 from torch.utils.tensorboard import SummaryWriter
 from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
@@ -31,7 +32,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # Model
     resnet = models.resnet50(pretrained=True)
-    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4).to(device)
+    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4, cd_o_channel=5).to(device)
     # model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
@@ -87,9 +88,12 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # get data
     # cd
-    cd_dataset_train = S2LookingRandomCrop(hpconfig.cd_dset_dir, "train", with_prob=True)
-    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val", with_prob=True)
-    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test", with_prob=True)
+    # cd_dataset_train = S2LookingRandomCrop(hpconfig.cd_dset_dir, "train", with_prob=True)
+    # cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val", with_prob=True)
+    # cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test", with_prob=True)
+    cd_dataset_train = XView2Dataset(root_dir=hpconfig.cd_dset_dir, mode='train')
+    cd_dataset_val = XView2Dataset(root_dir=hpconfig.cd_dset_dir, mode='test')
+    cd_dataset_test = XView2Dataset(root_dir=hpconfig.cd_dset_dir, mode='test')
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
@@ -123,7 +127,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
-            cd_labels = data['mask'].to(device)
+            cd_labels = data['masks'].to(device)
 
             outputs = model.siamese_forward(cd_i1, cd_i2)
 

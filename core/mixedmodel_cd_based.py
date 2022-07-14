@@ -106,7 +106,7 @@ class DependentResUnetMultiDecoder(nn.Module):
 
         self.siamese_decoder_out = nn.Sequential(
             nn.Conv2d(int(self.encoded_channels[0]/4), self.cd_o_channel, kernel_size=1, stride=1),
-            nn.Sigmoid()
+            nn.Softmax()
         )
 
     def create_segment_decoder(self):
