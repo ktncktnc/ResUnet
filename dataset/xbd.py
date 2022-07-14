@@ -94,15 +94,20 @@ class XView2Dataset(torch.utils.data.Dataset):
             tier3_probs = [s for s in os.listdir(self.dirs['tier3_probs'])]
             test_probs = [s for s in os.listdir(self.dirs['test_probs'])]
             hold_probs = [s for s in os.listdir(self.dirs['hold_probs'])]
+        else:
+            train_probs = None
+            tier3_probs = None
+            test_probs = None
+            hold_probs = None
 
         self.files = []
         if self.mode == 'train':
-            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs)
+            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs, self.dirs['train_probs'], train_probs)
         elif self.mode == 'train_tier3':
-            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs)
-            self.add_samples_train(self.dirs['tier3_imgs'], self.dirs['tier3_labs'], tier3_imgs, tier3_labs)
+            self.add_samples_train(self.dirs['train_imgs'], self.dirs['train_labs'], train_imgs, train_labs, self.dirs['train_probs'], train_probs)
+            self.add_samples_train(self.dirs['tier3_imgs'], self.dirs['tier3_labs'], tier3_imgs, tier3_labs, self.dirs['tier3_probs'], tier3_probs)
         elif self.mode in ["test"]:
-            self.add_samples_train(self.dirs['test_imgs'], self.dirs['test_labs'], test_imgs, test_labs)
+            self.add_samples_train(self.dirs['test_imgs'], self.dirs['test_labs'], test_imgs, test_labs, self.dirs['test_probs'], test_probs)
 
         self.random_crop = RandomCropSaveSegmentMask(512, 512)
         if augment_transform is None:
