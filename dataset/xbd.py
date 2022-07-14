@@ -3,6 +3,7 @@ import json
 import cv2
 import numpy as np
 import random
+import pandas as pd
 import albumentations as A
 from utils.augmentation import *
 from albumentations.pytorch import ToTensorV2
@@ -246,8 +247,10 @@ class XView2Dataset(torch.utils.data.Dataset):
         image2 = transformed['post_image']
 
         if self.with_prob:
-            prob1 = np.load(files['pre_prob'])['a'][x1:x2, y1:y2, np.newaxis]
-            prob2 = np.load(files['post_prob'])['a'][x1:x2, y1:y2, np.newaxis]
+            prob1 = pd.HDFStore(files['pre_prob']).a.to_numpy()[x1:x2, y1:y2, np.newaxis]
+            prob2 = pd.HDFStore(files['post_prob']).a.to_numpy()[x1:x2, y1:y2, np.newaxis]
+            # prob1 = np.load(files['pre_prob'])['a'][x1:x2, y1:y2, np.newaxis]
+            # prob2 = np.load(files['post_prob'])['a'][x1:x2, y1:y2, np.newaxis]
             prob_sample = {
                 'image': prob1,
                 'image0': prob2
