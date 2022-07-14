@@ -165,8 +165,8 @@ class XView2Dataset(torch.utils.data.Dataset):
             post = img_id + '_post_disaster.png'
             pre_label = img_id + '_pre_disaster_target.png'
             post_label = img_id + '_post_disaster_target.png'
-            pre_prob = img_id + '_pre_disaster_target.hdf'
-            post_prob = img_id + '_post_disaster_target.hdf'
+            pre_prob = img_id + '_pre_disaster.hdf'
+            post_prob = img_id + '_post_disaster.hdf'
             assert post in imgs
             if self.with_mask:
                 assert pre_label in labs
