@@ -247,8 +247,10 @@ class XView2Dataset(torch.utils.data.Dataset):
         image2 = transformed['post_image']
 
         if self.with_prob:
-            prob1 = pd.HDFStore(files['pre_prob'], 'r').a.to_numpy()[x1:x2, y1:y2, np.newaxis]
-            prob2 = pd.HDFStore(files['post_prob'], 'r').a.to_numpy()[x1:x2, y1:y2, np.newaxis]
+            hdf_prob1 = pd.HDFStore(files['pre_prob'], 'r')
+            hdf_prob2 = pd.HDFStore(files['post_prob'], 'r')
+            prob1 = hdf_prob1.a.to_numpy()[x1:x2, y1:y2, np.newaxis]
+            prob2 = hdf_prob2.a.to_numpy()[x1:x2, y1:y2, np.newaxis]
             # prob1 = np.load(files['pre_prob'])['a'][x1:x2, y1:y2, np.newaxis]
             # prob2 = np.load(files['post_prob'])['a'][x1:x2, y1:y2, np.newaxis]
             prob_sample = {
@@ -258,6 +260,8 @@ class XView2Dataset(torch.utils.data.Dataset):
             prob_transformed = self.prob_augment(**prob_sample)
             image1 = torch.cat((image1, prob_transformed['image']), dim=0)
             image2 = torch.cat((image2, prob_transformed['image0']), dim=0)
+            hdf_prob1.close()
+            hdf_prob2.close()
 
         if self.with_mask:
             masks = transformed['masks']
