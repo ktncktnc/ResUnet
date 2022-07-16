@@ -187,11 +187,11 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
             step += 1
 
-        print("Test...")
-        test_metrics = validation(
-            cd_test_dataloader, model, criterion, device, training_weight, validation_metrics
-        )
-        print(test_metrics)
+    print("Test...")
+    test_metrics = validation(
+        cd_test_dataloader, model, criterion, device, training_weight, validation_metrics
+    )
+    print(test_metrics)
 
 
 def validation(
@@ -209,7 +209,7 @@ def validation(
         # get the inputs and wrap in Variable
         i1 = data['x'].to(device)
         i2 = data['y'].to(device)
-        cd_labels = data['mask'].to(device)
+        cd_labels = data['masks'].to(device)
 
         outputs = model.siamese_forward(i1, i2)
         cd_loss = criterion(outputs, cd_labels)
