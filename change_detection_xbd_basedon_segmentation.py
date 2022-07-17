@@ -1,4 +1,5 @@
 import os
+from torchvision import models
 
 import cv2
 import torch
@@ -51,7 +52,8 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     if not os.path.exists(final_cd_path):
         os.makedirs(final_cd_path)
 
-    model = SiameseResUnetSegmentationBased(input_channel=4, cd_o_channel=5).to(device)
+    resnet = models.resnet50(pretrained=True)
+    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4, cd_o_channel=5).to(device)
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
