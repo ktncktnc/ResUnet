@@ -51,7 +51,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     if not os.path.exists(final_cd_path):
         os.makedirs(final_cd_path)
 
-    model = SiameseResUnetSegmentationBased().to(device)
+    model = SiameseResUnetSegmentationBased(input_channel=4, cd_o_channel=5).to(device)
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
