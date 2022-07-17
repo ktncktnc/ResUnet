@@ -9,7 +9,7 @@ import torchmetrics
 from albumentations.pytorch import ToTensorV2
 from core.siamese_resunet_cd_segmenation_based import SiameseResUnetSegmentationBased
 from utils import metrics
-from dataset.s2looking_allmask import S2LookingAllMask
+from dataset.xbd import XView2Dataset
 from dataset.utils import *
 from PIL import Image, ImagePalette
 from torch.utils.data import DataLoader
@@ -58,7 +58,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
     training_metrics = torchmetrics.MetricCollection(
         {
-            "Dice": torchmetrics.Dice(average='none', num_classes=2),
+            "Dice": torchmetrics.Dice(average='none', num_classes=5),
         },
         prefix='test_'
     )
@@ -68,7 +68,8 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     else:
         n_masks = 1
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split)
+    #dataset = S2LookingAllMask(hp.cd_dset_dir, split)
+    dataset = XView2Dataset(root_dir=hpconfig.cd_dset_dir, mode=split)
 
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
@@ -82,22 +83,22 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
     loader = tqdm(dataloader, desc="Evaluating")
 
-    nuclei_palette = ImagePalette.random()
+    nuclei_palette = ImagePalette.load('/root/img_palette.txt')
 
     img_height, img_width = dataset.get_full_resized_shape()
-    full_cm = np.zeros((img_height, img_width))
+    full_cm = np.zeros((5, img_height, img_width))
     full_label = np.zeros((img_height, img_width))
     full_x = np.zeros((2, img_height, img_width))
     full_y = np.zeros((2, img_height, img_width))
     full_x_probs = np.zeros((img_height, img_width), dtype=np.float64)
     full_y_probs = np.zeros((img_height, img_width), dtype=np.float64)
-    full_cm_probs = np.zeros((img_height, img_width), dtype=np.float64)
+    full_cm_probs = np.zeros((5, img_height, img_width), dtype=np.float64)
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
-            cd_labels = data['mask'].to(device)
+            cd_labels = data['masks'].to(device)
             outputs = model(cd_i1, cd_i2)
 
             #cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
@@ -118,30 +119,31 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                 files = dataset.files[idx * batch_size + i]
                 divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
-                filename = os.path.basename(files['image1'])[:-4]
+                pre_name = os.path.basename(files['pre_img'])[:-4]
+                post_name = os.path.basename(files['post_img'])[:-4]
 
                 full_x[:, x1:x2, y1:y2] = x[i, :, ...]
                 full_y[:, x1:x2, y1:y2] = y[i, :, ...]
-                full_cm[x1:x2, y1:y2] = cm[i, 0, ...]
+                full_cm[:, x1:x2, y1:y2] = cm[i, :, ...]
 
                 full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
                 full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
-                full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
+                full_cm_probs[:, x1:x2, y1:y2] = cm_probs[i, :, ...]
 
                 if divide >= dataset.divide*dataset.divide - 1:
 
                     # Colorize instance segmentation map and save
-                    masks1 = save_mask_and_contour(
-                        full_x[0, ...], full_x[1, ...], nuclei_palette,
-                        os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
-                        (dataset.width, dataset.height)
-                    ).astype(int)
+                    # masks1 = save_mask_and_contour(
+                    #     full_x[0, ...], full_x[1, ...], nuclei_palette,
+                    #     os.path.join(img1_save_path, "mask1_{filename}.png".format(filename=filename)),
+                    #     (dataset.width, dataset.height)
+                    # ).astype(int)
 
-                    masks2 = save_mask_and_contour(
-                        full_y[0, ...], full_y[1, ...], nuclei_palette,
-                        os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
-                        (dataset.width, dataset.height)
-                    ).astype(int)
+                    # masks2 = save_mask_and_contour(
+                    #     full_y[0, ...], full_y[1, ...], nuclei_palette,
+                    #     os.path.join(img2_save_path, "mask2_{filename}.png".format(filename=filename)),
+                    #     (dataset.width, dataset.height)
+                    # ).astype(int)
 
                     # masks1 = torch.from_numpy(masks1)
                     # masks2 = torch.from_numpy(masks2)
@@ -155,25 +157,29 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     # plot_and_save(mask_color_1, mask_color_2, hg_img,
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                    cm_img = Image.fromarray(full_cm, mode='1')
-                    cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=filename)))
-                    cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
+                    one_channel_full_cm = np.argmax(full_cm_probs, axis=0)
+                    cm_img = Image.fromarray(one_channel_full_cm, mode='P')
+                    cm_img = cm_img.resize((dataset.width, dataset.height))
+                    cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=post_name)))
+                    np_cm_img = (np.asarray(cm_img)*1).astype('int')
+                    cm_img.putpalette(nuclei_palette)
 
-                    gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
+                    gt_cd = np.array(Image.open(files["masks"])).astype('int')
 
                     training_metrics(
                         target=torch.from_numpy(gt_cd),
-                        preds=torch.from_numpy(cm_img)
+                        preds=torch.from_numpy(np_cm_img)
                     )
                     cd_branch_acc.update(
-                        metrics.np_dice_coeff(cm_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
+                        metrics.np_dice_coeff(np_cm_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
 
+                    cm_img.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=post_name)))
 
                     # Save CM from CD branch
-                    cv2.imwrite(
-                        os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
-                        cm_img*255
-                    )
+                    # cv2.imwrite(
+                    #     os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
+                    #     cm_img*255
+                    # )
                     # cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
                     # cm_im = cm_im.resize((dataset.width, dataset.height))
                     # cm_im.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)))
