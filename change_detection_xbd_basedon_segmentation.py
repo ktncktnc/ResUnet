@@ -71,7 +71,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
         n_masks = 1
 
     #dataset = S2LookingAllMask(hp.cd_dset_dir, split)
-    dataset = XView2Dataset(root_dir=hpconfig.cd_dset_dir, mode=split)
+    dataset = XView2Dataset(root_dir=hp.cd_dset_dir, mode=split)
 
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
@@ -101,17 +101,17 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
             cd_i1 = data['x'].to(device)
             cd_i2 = data['y'].to(device)
             cd_labels = data['masks'].to(device)
-            outputs = model(cd_i1, cd_i2)
+            outputs = model.siamese_forward(cd_i1, cd_i2)
 
             #cd_branch_acc.update(metrics.dice_coeff(outputs['cm'], cd_labels), outputs['cm'].size(0))
 
-            cm_probs = outputs['cm'].cpu().numpy()
-            x_probs = outputs['x'].cpu().numpy()
-            y_probs = outputs['y'].cpu().numpy()
+            cm_probs = outputs.cpu().numpy()
+            #x_probs = outputs['x'].cpu().numpy()
+            #y_probs = outputs['y'].cpu().numpy()
 
             cm = (cm_probs >= threshold) * 1
-            x = (x_probs >= threshold) * 1
-            y = (y_probs >= threshold) * 1
+            #x = (x_probs >= threshold) * 1
+            #y = (y_probs >= threshold) * 1
 
             hg_probs = []
             final_probs = []
@@ -124,12 +124,12 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                 pre_name = os.path.basename(files['pre_img'])[:-4]
                 post_name = os.path.basename(files['post_img'])[:-4]
 
-                full_x[:, x1:x2, y1:y2] = x[i, :, ...]
-                full_y[:, x1:x2, y1:y2] = y[i, :, ...]
+                #full_x[:, x1:x2, y1:y2] = x[i, :, ...]
+                #full_y[:, x1:x2, y1:y2] = y[i, :, ...]
                 full_cm[:, x1:x2, y1:y2] = cm[i, :, ...]
 
-                full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
-                full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
+                #full_x_probs[x1:x2, y1:y2] = x_probs[i, 0, ...]
+                #full_y_probs[x1:x2, y1:y2] = y_probs[i, 0, ...]
                 full_cm_probs[:, x1:x2, y1:y2] = cm_probs[i, :, ...]
 
                 if divide >= dataset.divide*dataset.divide - 1:
