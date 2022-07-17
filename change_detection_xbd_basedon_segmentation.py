@@ -8,7 +8,7 @@ import numpy as np
 import albumentations as albums
 import torchmetrics
 from albumentations.pytorch import ToTensorV2
-from core.siamese_resunet_cd_segmenation_based import SiameseResUnetSegmentationBased
+from core.mixedmodel_cd_based import DependentResUnetMultiDecoder
 from utils import metrics
 from dataset.xbd import XView2Dataset
 from dataset.utils import *
