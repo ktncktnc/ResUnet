@@ -32,7 +32,7 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # Model
     resnet = models.resnet50(pretrained=True)
-    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4, cd_o_channel=5).to(device)
+    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4, cd_o_channel=4).to(device)
     # model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
