@@ -53,14 +53,14 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
         os.makedirs(final_cd_path)
 
     resnet = models.resnet50(pretrained=True)
-    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4, cd_o_channel=5).to(device)
+    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4, cd_o_channel=4).to(device)
     checkpoint = torch.load(trained_path)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
     training_metrics = torchmetrics.MetricCollection(
         {
-            "Dice": torchmetrics.Dice(average='none', num_classes=5),
+            "Dice": torchmetrics.Dice(average='none', num_classes=4),
         },
         prefix='test_'
     )
@@ -88,7 +88,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     nuclei_palette = ImagePalette.load('/root/img_palette.txt')
 
     img_height, img_width = dataset.get_full_resized_shape()
-    full_cm = np.zeros((5, img_height, img_width))
+    full_cm = np.zeros((4, img_height, img_width))
     full_label = np.zeros((img_height, img_width))
     full_x = np.zeros((2, img_height, img_width))
     full_y = np.zeros((2, img_height, img_width))
