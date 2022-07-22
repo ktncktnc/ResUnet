@@ -1,6 +1,6 @@
 import os
 from torchvision import models
-
+import matplotlib.cm as matcm
 import cv2
 import torch
 import argparse
@@ -26,6 +26,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
         cm_weights = [0.3, 0.7]
     assert (0 <= mode < 3)
     assert os.path.isfile(trained_path)
+    np.random.seed(42)
 
     img1_save_path = os.path.join(saved_path, "img1")
     img2_save_path = os.path.join(saved_path, "img2")
@@ -85,7 +86,8 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
     loader = tqdm(dataloader, desc="Evaluating")
 
-    nuclei_palette = ImagePalette.load('/root/img_palette.txt')
+    colormap = np.zeros((256, 3))
+    colormap[:5, :3] = matcm.jet(np.linspace(0, 1, 5))[:, :3]
 
     img_height, img_width = dataset.get_full_resized_shape()
     full_cm = np.zeros((4, img_height, img_width))
@@ -94,7 +96,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     full_y = np.zeros((2, img_height, img_width))
     full_x_probs = np.zeros((img_height, img_width), dtype=np.float64)
     full_y_probs = np.zeros((img_height, img_width), dtype=np.float64)
-    full_cm_probs = np.zeros((5, img_height, img_width), dtype=np.float64)
+    full_cm_probs = np.zeros((4, img_height, img_width), dtype=np.float64)
 
     with torch.no_grad():
         for (idx, data) in enumerate(loader):
@@ -160,22 +162,23 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
                     one_channel_full_cm = np.argmax(full_cm_probs, axis=0)
-                    cm_img = Image.fromarray(one_channel_full_cm, mode='P')
-                    cm_img = cm_img.resize((dataset.width, dataset.height))
-                    cm_img.save(os.path.join(hungarian_cd_save_path, "cd_{filename}.png".format(filename=post_name)))
-                    np_cm_img = (np.asarray(cm_img)*1).astype('int')
-                    cm_img.putpalette(nuclei_palette)
+                    one_channel_full_cm = cv2.resize(one_channel_full_cm, (dataset.width, dataset.height), interpolation=cv2.INTER_NEAREST)
+                    cm_img = Image.fromarray(one_channel_full_cm.astype(np.uint8))
+                    cm_img = cm_img.convert("P")
 
-                    gt_cd = np.array(Image.open(files["masks"])).astype('int')
+                    cm_img.putpalette((colormap * 255).astype(np.uint8).flatten(), rawmode='RGB')
+
+                    gt_cd = np.array(Image.open(files["post_label"])).astype('int') - 1
+                    gt_cd[gt_cd < 0] = 0
 
                     training_metrics(
                         target=torch.from_numpy(gt_cd),
-                        preds=torch.from_numpy(np_cm_img)
+                        preds=torch.from_numpy(one_channel_full_cm)
                     )
                     cd_branch_acc.update(
-                        metrics.np_dice_coeff(np_cm_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
+                        metrics.np_dice_coeff(one_channel_full_cm[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
 
-                    cm_img.save(os.path.join(cd_save_path, "cd_{filename}.png".format(filename=post_name)))
+                    cm_img.save(os.path.join(cd_save_path, "{filename}.png".format(filename=post_name)))
 
                     # Save CM from CD branch
                     # cv2.imwrite(

@@ -232,9 +232,9 @@ class XView2Dataset(torch.utils.data.Dataset):
         }
 
         if self.with_mask:
-            pre_label = cv2.imread(files['pre_label'])[x1:x2, y1:y2, 0]
+            #pre_label = cv2.imread(files['pre_label'])[x1:x2, y1:y2, 0]
             post_label = cv2.imread(files['post_label'])[x1:x2, y1:y2, 0]
-            masks = np.zeros((post_img.shape[0], post_img.shape[1], 5))
+            masks = np.zeros((post_img.shape[0], post_img.shape[1], 4))
             masks[:, :, 0] = np.logical_or((post_label == 0), (post_label == 1))*1
             for i in range(1, 4):
                 masks[:, :, i] = (post_label == (i+1)) * 1
