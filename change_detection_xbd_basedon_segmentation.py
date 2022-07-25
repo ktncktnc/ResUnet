@@ -66,6 +66,10 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
         prefix='test_'
     )
 
+    mask1_metrics = torchmetrics.MetricCollection({"Dice": torchmetrics.Dice(average='none', num_classes=2),}, prefix='test1_')
+    mask2_metrics = torchmetrics.MetricCollection({"Dice": torchmetrics.Dice(average='none', num_classes=2),}, prefix='test2_')
+    mask3_metrics = torchmetrics.MetricCollection({"Dice": torchmetrics.Dice(average='none', num_classes=2),}, prefix='test3_')
+
     if save_sub_mask:
         n_masks = mode + 1
     else:
@@ -172,13 +176,27 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                     gt_cd[gt_cd < 0] = 0
 
                     training_metrics(
-                        target=torch.from_numpy(gt_cd),
-                        preds=torch.from_numpy(one_channel_full_cm)
+                        target=torch.from_numpy(gt_cd[np.newaxis, :, :]),
+                        preds=torch.from_numpy(one_channel_full_cm[np.newaxis, :, :])
+                    )
+                    mask1_metrics(
+                        target=torch.from_numpy(((gt_cd==1)*1)[np.newaxis, :, :]),
+                        preds=torch.from_numpy(((one_channel_full_cm==2)*1)[np.newaxis, :, :])
+                    )
+                    mask2_metrics(
+                        target=torch.from_numpy(((gt_cd==2)*1)[np.newaxis, :, :]),
+                        preds=torch.from_numpy(((one_channel_full_cm==3)*1)[np.newaxis, :, :])
+                    )
+                    mask3_metrics(
+                        target=torch.from_numpy(((gt_cd==3)*1)[np.newaxis, :, :]),
+                        preds=torch.from_numpy(((one_channel_full_cm==3)*1)[np.newaxis, :, :])
                     )
                     cd_branch_acc.update(
                         metrics.np_dice_coeff(one_channel_full_cm[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
 
                     cm_img.save(os.path.join(cd_save_path, "{filename}.png".format(filename=post_name)))
+                    cv2.imwrite(os.path.join(cd_save_path, "mask1_{filename}_gt.png".format(filename=post_name)), (gt_cd==1)*255)
+                    cv2.imwrite(os.path.join(cd_save_path, "mask1_{filename}_cd.png".format(filename=post_name)), (one_channel_full_cm==1)*255)
 
                     # Save CM from CD branch
                     # cv2.imwrite(
@@ -213,6 +231,9 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
     values = training_metrics.compute()
     print(values)
+    print(mask1_metrics.compute())
+    print(mask2_metrics.compute())
+    print(mask3_metrics.compute())
     print("CD Branch dice: {:.4f}".format(cd_branch_acc.avg))
 
 
