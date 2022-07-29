@@ -36,7 +36,8 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
     # model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
-    criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
+    # criterion = metrics.BCEDiceLoss(weight=[0.1, 0.9])
+    criterion = torch.nn.CrossEntropyLoss(weight=torch.Tensor([1.0, 2.0, 3.0, 4.0]).cuda(), reduce='mean')
 
     # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
