@@ -47,7 +47,7 @@ class XView2Dataset(torch.utils.data.Dataset):
     diaster_type = {'earthquake': 0, 'fire': 1, 'tsunami': 2, 'volcano': 3, 'wind': 4, 'flooding': 5}
 
     def __init__(self, root_dir, with_mask=True, with_prob=True, resized_shape=(256, 256), rgb_bgr='rgb', preprocessing=None, mode='train', divide=2,
-                 single_disaster=None, augment_transform=None):
+                 single_disaster=None, augment_transform=None, is_cr=False):
         # assert mode in ('train', 'test', 'oodtrain', 'oodtest', 'oodhold',"guptatrain","guptahold")
         self.mode = mode
         self.root = root_dir
@@ -57,20 +57,25 @@ class XView2Dataset(torch.utils.data.Dataset):
         self.resized_shape = resized_shape
         self.divide_width = self.divide_height = 512
         self.width = self.height = 1024
+        self.is_cr = is_cr
+        if self.is_cr:
+            img_folder = 'cr_images'
+        else:
+            img_folder = 'images'
 
         assert rgb_bgr in ('rgb', 'bgr')
         self.rgb = bool(rgb_bgr == 'rgb')
         self.preprocessing = preprocessing
-        self.dirs = {'train_imgs': os.path.join(self.root, 'train', 'images'),
+        self.dirs = {'train_imgs': os.path.join(self.root, 'train', img_folder),
                      'train_labs': os.path.join(self.root, 'train', 'targets'),
                      'train_probs': os.path.join(self.root, 'train', 'probs'),
-                     'tier3_imgs': os.path.join(self.root, 'tier3', 'images'),
+                     'tier3_imgs': os.path.join(self.root, 'tier3', img_folder),
                      'tier3_labs': os.path.join(self.root, 'tier3', 'targets'),
                      'tier3_probs': os.path.join(self.root, 'tier3', 'probs'),
-                     'test_imgs': os.path.join(self.root, 'test', 'images'),
+                     'test_imgs': os.path.join(self.root, 'test', img_folder),
                      'test_labs': os.path.join(self.root, 'test', 'targets'),
                      'test_probs': os.path.join(self.root, 'test', 'probs'),
-                     'hold_imgs': os.path.join(self.root, 'hold', 'images'),
+                     'hold_imgs': os.path.join(self.root, 'hold', img_folder),
                      'hold_labs': os.path.join(self.root, 'hold', 'targets'),
                      'hold_probs': os.path.join(self.root, 'hold', 'probs'),
                      }
