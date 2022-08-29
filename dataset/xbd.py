@@ -88,18 +88,18 @@ class XView2Dataset(torch.utils.data.Dataset):
             train_labs = [s for s in os.listdir(self.dirs['train_labs'])]
             # tier3_labs = [s for s in os.listdir(self.dirs['tier3_labs'])]
             test_labs = [s for s in os.listdir(self.dirs['test_labs'])]
-            hold_labs = [s for s in os.listdir(self.dirs['hold_labs'])]
+            # hold_labs = [s for s in os.listdir(self.dirs['hold_labs'])]
         else:
             train_labs = None
             # tier3_labs = None
             test_labs = None
-            hold_labs = None
+            # hold_labs = None
 
         if self.with_prob:
             train_probs = [s for s in os.listdir(self.dirs['train_probs'])]
             # tier3_probs = [s for s in os.listdir(self.dirs['tier3_probs'])]
             test_probs = [s for s in os.listdir(self.dirs['test_probs'])]
-            hold_probs = [s for s in os.listdir(self.dirs['hold_probs'])]
+            # hold_probs = [s for s in os.listdir(self.dirs['hold_probs'])]
         else:
             train_probs = None
             # tier3_probs = None
