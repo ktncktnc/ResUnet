@@ -19,3 +19,5 @@ albumentations
 pycocotools
 gdown
 kaggle
+pandas
+Shapely

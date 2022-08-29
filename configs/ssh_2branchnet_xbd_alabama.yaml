@@ -1,4 +1,4 @@
-dset1_dir: "/root/alabama/alabama"
+dset1_dir: "/root/alabama/"
 dset2_dir: "/root/xbd"
 log: "logs"
 logging_step: 50
