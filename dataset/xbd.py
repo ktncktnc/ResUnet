@@ -82,7 +82,7 @@ class XView2Dataset(torch.utils.data.Dataset):
         train_imgs = [s for s in os.listdir(self.dirs['train_imgs'])]
         # tier3_imgs = [s for s in os.listdir(self.dirs['tier3_imgs'])]
         test_imgs = [s for s in os.listdir(self.dirs['test_imgs'])]
-        hold_imgs = [s for s in os.listdir(self.dirs['hold_imgs'])]
+        # hold_imgs = [s for s in os.listdir(self.dirs['hold_imgs'])]
 
         if self.with_mask:
             train_labs = [s for s in os.listdir(self.dirs['train_labs'])]
