@@ -89,8 +89,8 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
         }
     )
 
-    #dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=False)
-    dataset = XView2Dataset(root_dir=hp.cd_dset_dir, mode=split, with_prob=False)
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, transform, dataset_split, without_mask=False)
+    # dataset = XView2Dataset(root_dir=hp.cd_dset_dir, mode=split, with_prob=False)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
     )
@@ -139,6 +139,7 @@ def main(hp, mode, split, trained_path, saved_path, threshold=0.5, batch_size=8,
             for i in range(x.shape[0]):
                 # Get file name
                 files = dataset.files[idx * batch_size + i]
+                print(files)
                 divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
                 # S2Looking: filename = os.path.basename(files['image1'])[:-4]

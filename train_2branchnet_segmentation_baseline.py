@@ -55,9 +55,9 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         {
             "Loss": TrackingMetric(name="loss"),
             "Segmentation_Loss": TrackingMetric(name="segmentation_loss"),
-            "Domain_Loss": TrackingMetric(name="domain_loss"),
+            #"Domain_Loss": TrackingMetric(name="domain_loss"),
             "Segmentation_Dice": Dice(),
-            "Domain_Accuracy": torchmetrics.classification.Accuracy(),
+            #"Domain_Accuracy": torchmetrics.classification.Accuracy(),
         },
         prefix='train_'
     )
@@ -89,10 +89,11 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
     # get data
     # cd
+    print(hpconfig.batch_size)
     alb_dataset_train = AlabamaDataset(hpconfig.segment_dset_dir, "train")
     alb_dataset_val = AlabamaDataset(hpconfig.segment_dset_dir, "test")
-    s2l_dataset_train = S2LookingRandomCrop(hpconfig.cd_dset_dir, "train")
-    s2l_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "test")
+    # s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train_cr")
+    # s2l_dataset_val = S2LookingAllMask(hpconfig.dset2_dir, "test")
     # s2l_dataset_train = XView2Dataset(hpconfig.dset2_dir, mode='train', with_prob=False, is_cr=True)
     # s2l_dataset_val = XView2Dataset(hpconfig.dset2_dir, mode="test", with_prob=False, is_cr=True)
 
@@ -103,19 +104,19 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         alb_dataset_val, batch_size=hpconfig.batch_size, num_workers=2, shuffle=False
     )
 
-    s2l_train_dataloader = DataLoader(
-        s2l_dataset_train, batch_size=int(hpconfig.batch_size / 2), num_workers=2, shuffle=True
-    )
-    s2l_val_dataloader = DataLoader(
-        s2l_dataset_val, batch_size=int(hpconfig.batch_size / 2), num_workers=2, shuffle=False
-    )
+    # s2l_train_dataloader = DataLoader(
+    #     s2l_dataset_train, batch_size=int(hpconfig.batch_size / 2), num_workers=2, shuffle=True
+    # )
+    # s2l_val_dataloader = DataLoader(
+    #     s2l_dataset_val, batch_size=int(hpconfig.batch_size / 2), num_workers=2, shuffle=False
+    # )
 
-    loader_len = min(len(alb_dataset_train), len(s2l_train_dataloader))
+    loader_len = len(alb_dataset_train)
     nllloss = torch.nn.NLLLoss().to(device)
 
     for epoch in range(start_epoch, num_epochs):
         alb_train_batch = iter(alb_train_dataloader)
-        s2l_train_batch = iter(s2l_train_dataloader)
+        # s2l_train_batch = iter(s2l_train_dataloader)
 
         start_steps = epoch * loader_len
         total_steps = num_epochs * loader_len
@@ -126,32 +127,32 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
         # step the learning rate scheduler
         lr_scheduler.step()
 
-        loader = tqdm(range(loader_len), desc="Training")
+        loader = tqdm(alb_train_dataloader, desc="segment training")
         # iterate over data
-        for i in loader:
+        for (i, s_data) in enumerate(loader):
             # zero the parameter gradients
             optimizer.zero_grad()
 
             p = float(i + start_steps) / total_steps
             alpha = 2. / (1. + np.exp(-10 * p)) - 1
 
-            s_data = next(alb_train_batch)
+            # s_data = next(alb_train_batch)
             s_images = s_data['image'].to(device)
             s_groundtruth = s_data['mask'].to(device)
-            s_domains = torch.zeros(s_images.shape[0]).long().to(device)
+            # s_domains = torch.zeros(s_images.shape[0]).long().to(device)
 
-            t_data = next(s2l_train_batch)
-            t_image1 = t_data['x'].to(device)
-            t_image2 = t_data['y'].to(device)
-            t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long().to(device)
+            # t_data = next(s2l_train_batch)
+            # t_image1 = t_data['x'].to(device)
+            # t_image2 = t_data['y'].to(device)
+            # t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long().to(device)
 
             s_outputs, s_output_domains = model.segment_forward(s_images, alpha=alpha)
-            t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
-            t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
-            t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
+            # t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
+            # t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
+            # t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
 
-            domains = torch.cat((s_domains, t_domains), dim=0).cpu()
-            output_domains = torch.cat((s_output_domains, t_output_domains), 0).cpu()
+            # domains = torch.cat((s_domains, t_domains), dim=0).cpu()
+            # output_domains = torch.cat((s_output_domains, t_output_domains), 0).cpu()
 
             # Segment loss
             segment_loss = 0.0
@@ -159,18 +160,18 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 _loss = criterion(s_outputs[:, i, ...], s_groundtruth[:, i, ...])
                 segment_loss += training_weight[i] * _loss
 
-            domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
+            domain_loss = 0
             loss = segment_loss + domain_loss_weight*domain_loss
 
             training_metrics(
-                preds=output_domains.cpu(),
-                target=domains.cpu(),
+                # preds=output_domains.cpu(),
+                # target=domains.cpu(),
                 dice_preds=s_outputs[:, 0, ...].cpu(),
                 dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor).cpu(),
                 value={
                     "loss": loss.cpu(),
                     "segmentation_loss": segment_loss.cpu(),
-                    "domain_loss": domain_loss.cpu()
+                    # "domain_loss": domain_loss.cpu()
                 }
             )
 
@@ -183,7 +184,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
                 values = training_metrics.compute()
                 loader.set_description(
                     "Training: loss: {:.4f} domain loss: {:.4f} dice: {:.4f}".format(
-                        values["train_Loss"], values["train_Domain_Loss"], values["train_Segmentation_Dice"]
+                        values["train_Loss"], 0, values["train_Segmentation_Dice"]
                     )
                 )
                 for v_key in values:
@@ -195,7 +196,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
             # Validation
             if (step + 1) % hpconfig.validation_interval == 0:
                 valid_values = validation(
-                    alb_val_dataloader, s2l_val_dataloader, model, criterion, device, training_weight,
+                    alb_val_dataloader, None, model, criterion, device, training_weight,
                     domain_loss_weight, alpha, validation_metrics
                 )
 
@@ -230,59 +231,58 @@ def validation(s_dataloader, t_dataloader, model, criterion, device, training_we
                validation_metrics: torchmetrics.MetricCollection):
     print("\nValidation...")
 
-    s_batch = iter(s_dataloader)
-    t_batch = iter(t_dataloader)
+    # s_batch = iter(s_dataloader)
+    # t_batch = iter(t_dataloader)
 
-    loader_len = min(len(s_dataloader), len(t_dataloader))
+    #loader_len = min(len(s_dataloader), len(t_dataloader))
     nllloss = torch.nn.NLLLoss().to(device)
 
     # switch to evaluate mode
     model.eval()
 
     # Iterate over data.
-    for i in range(loader_len):
+    for (i, s_data) in enumerate(s_dataloader):
         # get the inputs and wrap in Variable
-        s_data = next(s_batch)
         s_images = s_data['image'].to(device)
         s_groundtruth = s_data['mask'].to(device)
         s_domains = torch.zeros(s_images.shape[0]).long().to(device)
 
-        t_data = next(t_batch)
-        t_image1 = t_data['x'].to(device)
-        t_image2 = t_data['y'].to(device)
-        t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long().to(device)
-        domains = torch.cat((s_domains, t_domains), 0)
+        # t_data = next(t_batch)
+        # t_image1 = t_data['x'].to(device)
+        # t_image2 = t_data['y'].to(device)
+        # t_domains = torch.ones(t_image1.shape[0] + t_image2.shape[0]).long().to(device)
+        # domains = torch.cat((s_domains, t_domains), 0)
 
         s_outputs, s_output_domains = model.segment_forward(s_images, alpha=alpha)
-        t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
-        t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
-        t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
-        output_domains = torch.cat((s_output_domains, t_output_domains), 0)
+        # t_output_domains1 = model.domain_classify(x=t_image1, alpha=alpha)
+        # t_output_domains2 = model.domain_classify(x=t_image2, alpha=alpha)
+        # t_output_domains = torch.cat((t_output_domains1, t_output_domains2), 0)
+        # output_domains = torch.cat((s_output_domains, t_output_domains), 0)
 
         segment_loss = 0.0
         for i in range(2):
             _loss = criterion(s_outputs[:, i, ...], s_groundtruth[:, i, ...])
             segment_loss += training_weight[i] * _loss
 
-        domain_loss = nllloss(s_output_domains, s_domains) + nllloss(t_output_domains, t_domains)
+        domain_loss = 0
         loss = segment_loss + domain_loss_weight*domain_loss
 
         validation_metrics(
-            preds=output_domains.cpu(),
-            target=domains.cpu(),
+            # preds=output_domains.cpu(),
+            # target=domains.cpu(),
             dice_preds=s_outputs[:, 0, ...].cpu(),
             dice_target=s_groundtruth[:, 0, ...].type(torch.IntTensor).cpu(),
             value={
                 "loss": loss.cpu(),
                 "segmentation_loss": segment_loss.cpu(),
-                "domain_loss": domain_loss.cpu()
+                # "domain_loss": domain_loss.cpu()
             }
         )
 
     values = validation_metrics.compute()
     print(
         "Validation: loss: {:.4f} domain loss: {:.4f} dice: {:.4f}".format(
-            values["validation_Loss"], values["validation_Domain_Loss"], values["validation_Segmentation_Dice"]
+            values["validation_Loss"], 0, values["validation_Segmentation_Dice"]
         )
     )
 

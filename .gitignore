@@ -10,6 +10,8 @@
 /*.ini
 .idea
 idea/*
+*.png
+*.jpg
 /data
 /output
 /logs
