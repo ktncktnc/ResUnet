@@ -35,3 +35,8 @@ idea/*
 /dataset/text/__pycache__
 /road_segmentation_ideal
 /hparams.py
+/logs
+/result
+/runs
+/tests
+/weights
