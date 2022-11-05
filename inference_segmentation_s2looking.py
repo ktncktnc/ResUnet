@@ -15,12 +15,13 @@ from PIL import Image, ImagePalette
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils.hparams import HParam
+from utils.augmentation import *
 from utils.images import *
 from utils.hungarian import *
 
 
 def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
-         cm_weights=None):
+         cm_weights=None, save_prob=False):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
     assert (0 <= mode < 3)
@@ -28,6 +29,9 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
     img1_save_path = os.path.join(saved_path, "img1")
     img2_save_path = os.path.join(saved_path, "img2")
+
+    prob_img1_save_path = os.path.join(saved_path, "prob_img1")
+    prob_img2_save_path = os.path.join(saved_path, "prob_img2")
 
     cd_save_path = os.path.join(saved_path, "cd")
     hungarian_cd_save_path = os.path.join(saved_path, "hungarian_cd")
@@ -42,6 +46,12 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     if not os.path.exists(img2_save_path):
         os.makedirs(img2_save_path)
 
+    if not os.path.exists(prob_img1_save_path):
+        os.makedirs(prob_img1_save_path)
+
+    if not os.path.exists(prob_img2_save_path):
+        os.makedirs(prob_img2_save_path)
+
     if not os.path.exists(cd_save_path):
         os.makedirs(cd_save_path)
 
@@ -52,13 +62,16 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
         os.makedirs(final_cd_path)
 
     model = SiameseResUnetSegmentationBased().to(device)
-    checkpoint = torch.load(trained_path)
-    model.load_state_dict(checkpoint["state_dict"])
+    checkpoint = torch.load(trained_path, map_location=device)
+    model.load_segmentation_weight(checkpoint["state_dict"])
     model.eval()
 
     training_metrics = torchmetrics.MetricCollection(
         {
             "Dice": torchmetrics.Dice(average='none', num_classes=2),
+            "F1Score": torchmetrics.F1Score(average='none', num_classes=2, mdmc_average='global'),
+            "Precision": torchmetrics.Precision(average='none', num_classes=2,mdmc_average='global'),
+            "Recall": torchmetrics.Recall(average='none', num_classes=2, mdmc_average='global')
         },
         prefix='test_'
     )
@@ -68,7 +81,21 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     else:
         n_masks = 1
 
-    dataset = S2LookingAllMask(hp.cd_dset_dir, split)
+    augment_transform = albums.Compose([
+                albums.Resize(256, 256),
+                PerImageStandazation(),
+                ToTensorV2()
+            ],
+                additional_targets={
+                    'image0': 'image',
+                    'mask1': 'mask',
+                    'mask2': 'mask',
+                    'border_mask1': 'mask',
+                    'border_mask2': 'mask'
+                }
+            )
+
+    dataset = S2LookingAllMask(hp.cd_dset_dir, split, augment_transform=augment_transform)
 
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=2, shuffle=False
@@ -129,6 +156,12 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                 full_cm_probs[x1:x2, y1:y2] = cm_probs[i, 0, ...]
 
                 if divide >= dataset.divide*dataset.divide - 1:
+                    if save_prob:
+                        o_full_x_probs = cv2.resize(full_x_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                        o_full_y_probs = cv2.resize(full_y_probs, (dataset.width, dataset.height), interpolation=cv2.INTER_LINEAR)
+                        
+                        np.savez_compressed(os.path.join(prob_img1_save_path, "prob_{filename}".format(filename=filename)), a=o_full_x_probs)
+                        np.savez_compressed(os.path.join(prob_img2_save_path, "prob_{filename}".format(filename=filename)), a=o_full_y_probs)
 
                     # Colorize instance segmentation map and save
                     masks1 = save_mask_and_contour(
@@ -143,35 +176,35 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
                         (dataset.width, dataset.height)
                     ).astype(int)
 
-                    # masks1 = torch.from_numpy(masks1)
-                    # masks2 = torch.from_numpy(masks2)
+                    masks1 = torch.from_numpy(masks1)
+                    masks2 = torch.from_numpy(masks2)
 
                     # Hungarian algorithm
-                    # hg_map = change_detection_map(masks1, masks2, 256, 256)
-                    # hg_img = (hg_map * 255).astype(np.uint8)
+                    hg_map = change_detection_map(masks1, masks2, 1024, 1024)
+                    hg_img = (hg_map * 255).astype(np.uint8)
 
-                    # mask_color_1 = convert_to_color_map(masks1)
-                    # mask_color_2 = convert_to_color_map(masks2)
-                    # plot_and_save(mask_color_1, mask_color_2, hg_img,
-                    #               os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
+                    # mask_color_1 = convert_to_color_map(masks1, w=1024, h=1024)
+                    # mask_color_2 = convert_to_color_map(masks2, w=1024, h=1024)
+                    # plot_and_save(mask_color_1, mask_color_2, hg_img, os.path.join(hungarian_cd_save_path, "{filename}.png".format(filename=filename)))
 
-                    cm_img = Image.fromarray(full_cm, mode='1')
-                    cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
+                    # cm_img = Image.fromarray(full_cm, mode='1')
+                    # cm_img = np.asarray(cm_img.resize((dataset.width, dataset.height)))*1
 
                     gt_cd = (np.array(Image.open(files["mask"])) / 255.0).astype('int')
 
                     training_metrics(
                         target=torch.from_numpy(gt_cd),
-                        preds=torch.from_numpy(cm_img)
+                        preds=torch.from_numpy(hg_map.astype(np.uint8))
                     )
+
                     cd_branch_acc.update(
-                        metrics.np_dice_coeff(cm_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
+                        metrics.np_dice_coeff(hg_img[np.newaxis, :, :], gt_cd[np.newaxis, :, :]), 1)
 
 
                     # Save CM from CD branch
                     cv2.imwrite(
                         os.path.join(cd_save_path, "cd_{filename}.png".format(filename=filename)),
-                        cm_img*255
+                        hg_img*255
                     )
                     # cm_im = Image.fromarray((full_cm * 255).astype(np.uint8), mode='P')
                     # cm_im = cm_im.resize((dataset.width, dataset.height))
@@ -216,8 +249,9 @@ if __name__ == '__main__':
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
     )
     parser.add_argument("--device", default="cuda:0", type=str, help="Device ID")
-
-
+parser.add_argument('--saveprob', action='store_true')
+parser.add_argument('--no-saveprob', dest='saveprob', action='store_false')
+parser.set_defaults(saveprob=False)
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -229,4 +263,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize)
+    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, save_prob=args.saveprob)

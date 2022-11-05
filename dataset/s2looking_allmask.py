@@ -31,7 +31,8 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             augment_transform=None,
             divide=2,
             resized_shape=(256, 256),
-            without_mask=False
+            without_mask=False,
+            with_prob=False
     ):
         # assert split in self.splits
         self.width = None
@@ -40,11 +41,13 @@ class S2LookingAllMask(torch.utils.data.Dataset):
         self.divide = divide
         self.resized_shape = resized_shape
         self.without_mask = without_mask
+        self.with_prob = with_prob
 
         if augment_transform is None:
             self.transform = self.get_default_transform(split, self.resized_shape)
         else:
             self.transform = augment_transform
+        self.prob_augment = self.get_probs_transform(self.resized_shape)
 
         self.files = None
         self.divide_width = self.divide_height = 0
@@ -87,6 +90,17 @@ class S2LookingAllMask(torch.utils.data.Dataset):
                 }
             )
 
+    @staticmethod
+    def get_probs_transform(resized_shape):
+        return A.Compose([
+            A.Resize(resized_shape[0], resized_shape[1]),
+            PerImageStandazation(),
+            ToTensorV2()
+        ],
+            additional_targets={
+                'image0': 'image'
+            })
+
     def load_files(self, root: str, split: str, divide):
         files = []
         images = glob(os.path.join(root, split, "Image1", "*.png"))
@@ -97,9 +111,11 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             mask = os.path.join(root, split, "label", image)
             mask1 = os.path.join(root, split, "label1", image)
             mask2 = os.path.join(root, split, "label2", image)
+            prob1 = os.path.join(root, split, "prob_img1", "prob_" + image[:-4] + ".npz")
+            prob2 = os.path.join(root, split, "prob_img2", "prob_" + image[:-4] + ".npz")
 
             files += [
-                dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2, divide=i)
+                dict(image1=image1, image2=image2, mask=mask, mask1=mask1, mask2=mask2, divide=i, prob1=prob1, prob2=prob2)
                 for i in range(divide * divide)
             ]
 
@@ -152,9 +168,19 @@ class S2LookingAllMask(torch.utils.data.Dataset):
             }
 
         transformed = self.transform(**sample)
-
         image1 = transformed['image']
         image2 = transformed['image0']
+
+        if self.with_prob:
+            prob1 = np.load(files['prob1'])['a'][x1:x2, y1:y2, np.newaxis]
+            prob2 = np.load(files['prob2'])['a'][x1:x2, y1:y2, np.newaxis]
+            prob_sample = {
+                'image': prob1,
+                'image0': prob2
+            }
+            prob_transformed = self.prob_augment(**prob_sample)
+            image1 = torch.cat((image1, prob_transformed['image']), dim=0)
+            image2 = torch.cat((image2, prob_transformed['image0']), dim=0)
 
         if not self.without_mask:
             mask = transformed['mask']
@@ -202,4 +228,3 @@ class S2LookingAllMask(torch.utils.data.Dataset):
 
     def get_full_resized_shape(self):
         return self.resized_shape[0]*self.divide, self.resized_shape[1]*self.divide
-
