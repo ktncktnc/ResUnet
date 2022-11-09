@@ -40,3 +40,4 @@ idea/*
 /runs
 /tests
 /weights
+*.yaml

@@ -89,7 +89,7 @@ def main(hpconfig, num_epochs, resume, name, device, training_weight=None):
 
     # get data
     # cd
-    print(hpconfig.batch_size)
+
     alb_dataset_train = AlabamaDataset(hpconfig.segment_dset_dir, "train")
     alb_dataset_val = AlabamaDataset(hpconfig.segment_dset_dir, "test")
     # s2l_dataset_train = S2LookingRandomCrop(hpconfig.dset2_dir, "train_cr")

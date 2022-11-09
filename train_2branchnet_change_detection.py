@@ -20,7 +20,7 @@ warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", FutureWarning)
 
 
-def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, training_weight=None):
+def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, training_weight=None, prob_input=True):
     ssl._create_default_https_context = ssl._create_unverified_context
 
     checkpoint_dir = "{}/{}".format(hpconfig.checkpoints, name)
@@ -31,7 +31,11 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # Model
     resnet = models.resnet50(pretrained=True)
-    model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4).to(device)
+    if prob_input:
+        model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=4).to(device)
+    else:
+        model = DependentResUnetMultiDecoder(resnet=resnet, input_channel=3).to(device)
+
     # model.change_segmentation_branch_trainable(False)
 
     # set up binary cross entropy and dice loss
@@ -87,9 +91,9 @@ def main(hpconfig, num_epochs, resume, segmentation_weights, name, device, train
 
     # get data
     # cd
-    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train", with_prob=True)
-    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val", with_prob=True)
-    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test", with_prob=True)
+    cd_dataset_train = S2LookingAllMask(hpconfig.cd_dset_dir, "train", with_prob=prob_input)
+    cd_dataset_val = S2LookingAllMask(hpconfig.cd_dset_dir, "val", with_prob=prob_input)
+    cd_dataset_test = S2LookingAllMask(hpconfig.cd_dset_dir, "test", with_prob=prob_input)
 
     cd_train_dataloader = DataLoader(
         cd_dataset_train, batch_size=hpconfig.batch_size, num_workers=2, shuffle=True
@@ -253,6 +257,9 @@ if __name__ == '__main__':
     parser.add_argument("--name", default="default", type=str, help="Experiment name")
     parser.add_argument("--mode", default=0, type=int, help="Training mode")
     parser.add_argument("--device", default="cuda:0", type=str, help="Device ID")
+    parser.add_argument('--prob_input', action='store_true')
+    parser.add_argument('--no_prob_input', dest='prob_input', action='store_false')
+    parser.set_defaults(prob_input=True)    
     args = parser.parse_args()
 
     hp = HParam(args.config)
@@ -263,4 +270,4 @@ if __name__ == '__main__':
     device = torch.device(args.device)
 
     main(hp, num_epochs=args.epochs, resume=args.resume, segmentation_weights=args.segmentationweights, name=args.name,
-         device=device, training_weight=weights)
+         device=device, training_weight=weights, prob_input=args.prob_input)

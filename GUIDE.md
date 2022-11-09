@@ -32,5 +32,19 @@
     python train_2branchnet_segmentation.py -c <config-file> --epochs <epoch-number> --resume <optional: pretrained-path> --name <experiment-name> --device <device-name: cpu, cuda>
 - Inference:
     ```
-    python instance_segmentation.py -c config <config-file> --pretrain <trained-file> --deivice <device-name: cpu, cuda> --split <split-name: train, test, val> --dset_divide <optional: divide an input image axis to n part> --savepath <result-folder> 
-    
+    python instance_segmentation.py -c config <config-file> --pretrain <trained-file> --device <device-name: cpu, cuda> --split <split-name: train, test, val> --dset_divide <optional: divide an input image axis to n part> --savepath <result-folder> 
+    ```
+# Change detection
+- Training
+    - Baseline:
+    ```
+    python train_2branchnet_change_detection.py -c <config-path> --epochs <epochs> --resume <optional: pretrained-path> --name <experiment-name> --device <device-name: cpu, cuda:0> --no_prob_input
+    ```
+    - Add segmentation mask as the fourth channel
+    ```
+    python train_2branchnet_change_detection.py -c <config-path> --epochs <epochs> --resume <optional: pretrained-path> --name <experiment-name> --device <device-name: cpu, cuda:0>
+    ```
+- Testing:
+    ```
+    python change_detection_s2looking.py -c <config-path> --pretrain <trained-file> --device <device-name: cpu, cuda> --split <split-name: train, test, val> --dset_divide <optional: divide an input image axis to n part> --savepath <result-folder>(--segmentation_mask or --no_segmentation_mask)
+    ```

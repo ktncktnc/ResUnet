@@ -1,0 +1,8 @@
+segment_dset_dir: "/root/ResUnet/data/Alabama"
+cd_dset_dir: "/root/ResUnet/data/S2Looking_cr"
+log: "logs"
+logging_step: 100
+validation_interval: 900 # Save and valid have same interval
+checkpoints: "/root/ResUnet/weights"
+batch_size: 32
+lr: 0.001

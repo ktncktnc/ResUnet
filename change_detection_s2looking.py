@@ -19,7 +19,7 @@ from utils.images import *
 from utils.hungarian import *
 
 
-def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0.5, batch_size=8, save_sub_mask=False,
+def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0.5, save_sub_mask=False,
          cm_weights=None, with_segment_mask=False):
     if cm_weights is None:
         cm_weights = [0.3, 0.7]
@@ -78,7 +78,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
     dataset = S2LookingAllMask(hp.cd_dset_dir, split, with_prob=with_segment_mask)
 
     dataloader = DataLoader(
-        dataset, batch_size=batch_size, num_workers=2, shuffle=False
+        dataset, batch_size=hp.batch_size, num_workers=2, shuffle=False
     )
 
     cd_branch_acc = metrics.MetricTracker()
@@ -122,7 +122,7 @@ def main(hp, mode, weights, device, split, trained_path, saved_path, threshold=0
 
             for i in range(cm.shape[0]):
                 # Get file name
-                files = dataset.files[idx * batch_size + i]
+                files = dataset.files[idx * hp.batch_size + i]
                 divide = files['divide']
                 x1, x2, y1, y2 = dataset.get_resized_coord(divide)
                 filename = os.path.basename(files['image1'])[:-4]
@@ -218,12 +218,11 @@ if __name__ == '__main__':
     parser.add_argument("--pretrain", type=str)
     parser.add_argument("--savepath", type=str)
     parser.add_argument("--threshold", default=0.5, type=float)
-    parser.add_argument("--batchsize", default=8, type=int)
     parser.add_argument("--split", default="test", type=str)
 
-    parser.add_argument('--segment', action='store_true')
-    parser.add_argument('--no-segment', dest='segment', action='store_false')
-    parser.set_defaults(segment=True)
+    parser.add_argument('--segmentation_mask', action='store_true')
+    parser.add_argument('--no_segmentation_mask', dest='segmentation_mask', action='store_false')
+    parser.set_defaults(segmentation_mask=True)
 
     parser.add_argument(
         "-c", "--config", type=str, required=True, help="yaml file for configuration"
@@ -242,4 +241,4 @@ if __name__ == '__main__':
         weights = [1.0, 0.1, 0.05]
 
     hp = HParam(args.config)
-    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, args.batchsize, with_segment_mask=args.segment)
+    main(hp, int(args.mode), weights, device, args.split, args.pretrain, args.savepath, args.threshold, with_segment_mask=args.segmentation_mask)
