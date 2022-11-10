@@ -40,7 +40,7 @@
     ```
     python train_2branchnet_change_detection.py -c <config-path> --epochs <epochs> --resume <optional: pretrained-path> --name <experiment-name> --device <device-name: cpu, cuda:0> --no_prob_input
     ```
-    - Add segmentation mask as the fourth channel
+    - Add segmentation mask as the fourth channel:  Generate ảnh segmentation ở dạng prob bằng script instance_segmentation.py và copy vào thư mục prob_img1, prob_img2 ở mỗi split train, val, test
     ```
     python train_2branchnet_change_detection.py -c <config-path> --epochs <epochs> --resume <optional: pretrained-path> --name <experiment-name> --device <device-name: cpu, cuda:0>
     ```
