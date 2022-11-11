@@ -1,5 +1,7 @@
 # Dataset
-- Alabama dataset: https://www.kaggle.com/datasets/meowmeowplus/alabama-buildings-segmentation
+- Alabama dataset: 
+    - Link: https://www.kaggle.com/datasets/meowmeowplus/alabama-buildings-segmentation
+    - Train/test split: [Link](https://drive.google.com/drive/folders/1zM2_TnQ4DNe98DMx5b6sUmrrKEiJKvNi) Download and put those .txt files into alabama folder
 - S2Looking dataset: https://github.com/S2Looking/Dataset
 - S2Looking color-correction:
     - Code: https://github.com/ktncktnc/ImageFuns/blob/master/image_hist.py
