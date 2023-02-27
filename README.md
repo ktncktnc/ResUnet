@@ -3,4 +3,4 @@
 - There are 2 parts:
     - Domain adaptation building segmentation based on [this paper](https://arxiv.org/abs/1505.07818)
     - Change detection using Siamese Network.
-- Check out our [draft paper](paper/paper.pdf) for more information
+- Check out our [draft paper](paper/paper.pdf) for more information.
