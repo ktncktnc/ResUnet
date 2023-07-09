@@ -6,4 +6,4 @@
 - Dataset:
     - Alabma dataset: https://www.kaggle.com/datasets/meowmeowplus/alabama-buildings-segmentation
     - S2Looking dataset: https://github.com/S2Looking/Dataset
-- Check out our [draft paper](paper/paper.pdf) for more information.
+- Check out our [draft paper](paper/manuscript_09_07.pdf) for more information.
